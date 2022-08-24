@@ -1,0 +1,9 @@
+name = "ACDIS Site Migration"
+description = "Migrate content from legacy ACDIS to D7 ACDIS"
+package = "Migration"
+core = 7.x
+
+dependencies[] = migrate
+
+files[] = articles.inc
+files[] = resources.inc

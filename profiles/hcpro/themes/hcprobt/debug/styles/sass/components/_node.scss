@@ -1,0 +1,80 @@
+.node {
+  .field-name-title {
+    h1,
+    h2 {
+      font-size: $FSnodeTitles;
+      line-height: 1.2;
+      margin: 0;
+    }
+  }
+
+  .field--name-body {
+    h2 {
+      font-size: $FSnodeTitles;
+      margin: 0;
+    }
+  }
+
+  .group-details {
+    font-weight: $primaryFontWeightMed;
+
+    .field {
+      display: inline-block;
+      line-height: 20px;
+      border-right: 1px solid $copy;
+      padding: 0 5px 0 0;
+      margin: 0 5px 0 0;
+
+      &:last-child {
+        border: none;
+      }
+    }
+  }
+
+  .styled-download {
+    @include clearfix;
+    padding: $gutterSize;
+    margin: 0 0 $gutterSize;
+    background-color: $tableEvenBG;
+    border-left: 4px solid $brand2;
+
+    &:last-child {
+      margin: 0;
+    }
+
+    i {
+      @include border-radius(50%);
+      padding: 10px;
+      margin: 0 10px 0 0;
+      vertical-align: middle;
+      background-color: $brand1;
+      color: #ffffff;
+    }
+
+    .file {
+      font-size: $FSlarge;
+      font-weight: $primaryFontWeightBold;
+
+      .file-icon {
+        display: none;
+      }
+    }
+
+    a {
+      font-size: $FSsmall;
+      color: $copy;
+    }
+
+    .button {
+      float: right;
+
+      a {
+        @include button($brand1);
+
+        &:hover {
+          @include box-shadow(#000000 2px 2px 5px -3px);
+        }
+      }
+    }
+  }
+}

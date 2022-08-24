@@ -1,0 +1,18 @@
+.block-form-sponsorship {
+  margin: 0;
+
+  form {
+    .form-item {
+      @include breakpoint($mobile) {
+        max-width: 48%;
+        float: left;
+      }
+
+      &:nth-child(odd) {
+        @include breakpoint($mobile) {
+          margin-right: 4%;
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,225 @@
+<?php
+
+/**
+ * Test the Election Candidate module for basic CRUD functionality.
+ */
+class ElectionCandidateCrudTestCase extends DrupalWebTestCase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Election Candidate CRUD',
+      'description' => 'A basic CRUD (Create, Read, Update, Delete) test for the Election Candidate module.',
+      'group' => 'Election',
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
+    $modules = array(
+      'election_fptp',
+      'election_stv',
+    );
+    parent::setUp($modules);
+  }
+
+  /**
+   * Create, update, and delete an election candidate.
+   */
+  public function testElectionCandidateCrud() {
+
+    // Create a user who has the appropriate permissions for this test.
+    $test_user = $this->drupalCreateUser(array(
+      'create elections',
+      'view published elections',
+      'edit own elections',
+      'delete own elections',
+    ));
+    // Log in as that user.
+    $this->drupalLogin($test_user);
+
+    $election = $this->helperElectionCreate('stv', $this->randomString(), $test_user);
+    $post = $this->helperElectionPostCreate($election, $this->randomString());
+
+    // Create a new candidate in the election post with a random name and
+    // arbitrary e-mail address, and run assertions.
+    $candidate = $this->helperElectionCandidateCreateUi($post, $this->randomString(), $this->randomString(), 'candidate@example.com');
+    // Update the candidate's name, published status, and candidate status.
+    $candidate = $this->helperElectionCandidateUpdateUi($candidate, array(
+      'candidate_name[' . LANGUAGE_NONE . '][0][given]' => $this->randomString(),
+      'candidate_name[' . LANGUAGE_NONE . '][0][family]' => $this->randomString(),
+      'cstatus' => ELECTION_CANDIDATE_REJECTED,
+      'published' => FALSE,
+    ));
+    // Delete the candidate.
+    $this->helperElectionCandidateDeleteUi($candidate);
+
+    // Test that deleting an election deletes the post and candidates.
+    // Create an election with post and candidates.
+    $election = $this->helperElectionCreate('fptp', $this->randomString(), $test_user);
+    $post = $this->helperElectionPostCreate($election, $this->randomString());
+    $candidate = $this->helperElectionCandidateCreateUi($post, $this->randomString(), $this->randomString(), 'candidate@example.com');
+    // Test that the election, post, and candidate exist.
+    $this->drupalGet(election_uri_path($election));
+    $this->assertResponse(200, t('The election exists.'));
+    $this->drupalGet(election_post_uri_path($post));
+    $this->assertResponse(200, t('The post exists.'));
+    $this->drupalGet(election_candidate_uri_path($candidate));
+    $this->assertResponse(200, t('The candidate exists.'));
+    // Delete the election.
+    election_delete($election->election_id);
+    // Test that the election, post, and candidate do not exist.
+    $this->drupalGet(election_uri_path($election));
+    $this->assertResponse(404, t('The election does not exist.'));
+    $this->drupalGet(election_post_uri_path($post));
+    $this->assertResponse(404, t('The post does not exist.'));
+    $this->drupalGet(election_candidate_uri_path($candidate));
+    $this->assertResponse(404, t('The candidate does not exist.'));
+
+    // Test that deleting a post deletes the candidates.
+    // Create an election with post and candidates.
+    $election = $this->helperElectionCreate('fptp', $this->randomString(), $test_user);
+    $post = $this->helperElectionPostCreate($election, $this->randomString());
+    $candidate = $this->helperElectionCandidateCreateUi($post, $this->randomString(), $this->randomString(), 'candidate@example.com');
+    // Test that the post and candidate exist.
+    $this->drupalGet(election_post_uri_path($post));
+    $this->assertResponse(200, t('The post exists.'));
+    $this->drupalGet(election_candidate_uri_path($candidate));
+    $this->assertResponse(200, t('The candidate exists.'));
+    // Delete the post.
+    election_post_delete($post->post_id);
+    // Test that the post and candidate do not exist.
+    $this->drupalGet(election_post_uri_path($post));
+    $this->assertResponse(404, t('The post does not exist.'));
+    $this->drupalGet(election_candidate_uri_path($candidate));
+    $this->assertResponse(404, t('The candidate does not exist.'));
+  }
+
+  /**
+   * Create a new election directly.
+   *
+   * @param string $type
+   *   The type of election to make.
+   * @param string $title
+   *   The title of the new election.
+   * @param object $user
+   *   The user that owns the election.
+   *
+   * @return object
+   *   The election.
+   */
+  protected function helperElectionCreate($type, $title, stdClass $user) {
+    $election_controller = entity_get_controller('election');
+    $election = $election_controller->create(array(
+      'type' => $type,
+      'title' => $title,
+      'uid' => $user->uid,
+    ));
+    election_save($election);
+    return election_load($election->election_id);
+  }
+
+  /**
+   * Create a new election post directly.
+   *
+   * @param object $election
+   *   The election in which to make the post.
+   * @param string $title
+   *   The title of the new post.
+   *
+   * @return object
+   *   The election post.
+   */
+  protected function helperElectionPostCreate(stdClass $election, $title) {
+    $post_controller = entity_get_controller('election_post');
+    $post = $post_controller->create(array(
+      'type' => $election->type_info['post machine name'],
+      'title' => $title,
+      'election_id' => $election->election_id,
+    ));
+    election_post_save($post);
+    return $post;
+  }
+
+  /**
+   * Test creating a new election candidate via the UI.
+   */
+  protected function helperElectionCandidateCreateUi(stdClass $post, $given_name, $family_name, $mail, array $properties = array()) {
+    $properties['candidate_name[' . LANGUAGE_NONE . '][0][given]'] = $given_name;
+    $properties['candidate_name[' . LANGUAGE_NONE . '][0][family]'] = $family_name;
+    $properties['candidate_mail[' . LANGUAGE_NONE . '][0][email]'] = $mail;
+    $this->drupalPost('election-post/' . $post->post_id . '/add-candidate', $properties, t('Save'));
+    // Load the newly created election candidate by its name.
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'election_candidate')
+      ->fieldCondition('candidate_name', 'given', $given_name)
+      ->fieldCondition('candidate_name', 'family', $family_name)
+      ->fieldCondition('candidate_mail', 'email', $mail);
+    $result = $query->execute();
+    $candidate_ids = array_keys($result['election_candidate']);
+    $candidate_id = reset($candidate_ids);
+    $candidate = election_candidate_load($candidate_id);
+    // The page (after saving the candidate) should display a success message.
+    $this->assertRaw(
+      t('The candidate %name was saved.', array('%name' => election_candidate_get_name($candidate, FALSE))),
+      t('Election Candidate for post %post added correctly.', array('%post' => $post->title))
+    );
+    // Check that the new candidate has the correct properties.
+    $this->assertEqual($candidate->post_id, $candidate->post_id, t('The candidate is linked to the correct post.'));
+    $this->assertEqual($candidate->election_id, $candidate->election_id, t('The candidate is linked to the correct election.'));
+    return $candidate;
+  }
+
+  /**
+   * Test updating an existing election candidate via the UI.
+   */
+  protected function helperElectionCandidateUpdateUi(stdClass $candidate, array $edit) {
+    $this->drupalPost(election_candidate_uri_path($candidate) . '/edit', $edit, t('Save'));
+    // The page should display that the candidate was saved.
+    // The (possibly updated) name is needed to test this assertion.
+    $name = election_candidate_get_name($candidate, FALSE);
+    if (isset($edit['candidate_name[' . LANGUAGE_NONE . '][0][given]'])) {
+      $name = $edit['candidate_name[' . LANGUAGE_NONE . '][0][given]'];
+      if (isset($edit['candidate_name[' . LANGUAGE_NONE . '][0][family]'])) {
+        $name .= ' ' . $edit['candidate_name[' . LANGUAGE_NONE . '][0][family]'];
+      }
+    }
+    $this->assertRaw(
+      t('The candidate %name was saved.', array('%name' => $name)),
+      t('Election candidate updated correctly.')
+    );
+    // Load the candidate from the database again.
+    $original = $candidate;
+    $candidate = election_candidate_load($original->candidate_id, TRUE);
+    // Check that the new candidate has the correct properties.
+    foreach ($edit as $name => $value) {
+      if (isset($candidate->$name)) {
+        $this->assertEqual($candidate->$name, $value, t('Updated candidate property %name is correct.', array('%name' => $name)));
+      }
+    }
+    return $candidate;
+  }
+
+  /**
+   * Test deleting an existing election candidate via the UI.
+   */
+  protected function helperElectionCandidateDeleteUi(stdClass $candidate) {
+    $election = election_load($candidate->election_id);
+    $this->drupalPost(election_candidate_uri_path($candidate) . '/delete', array(), t('Delete'));
+    // The page should display that the election candidate was deleted.
+    $this->assertRaw(
+      t('The candidate %name has been deleted from the election %election_title.', array(
+        '%name' => election_candidate_get_name($candidate, FALSE),
+        '%election_title' => $election->title,
+      )),
+      t('Candidate deleted successfully.')
+    );
+    // Test that the user was redirected to an existing page after deleting.
+    $this->assertResponse(200, t('Redirected to an existent page after deleting.'));
+  }
+
+}

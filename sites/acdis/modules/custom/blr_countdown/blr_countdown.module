@@ -1,0 +1,64 @@
+<?php
+
+/**
+ * Implements hook_entity_load().
+ *
+ * @param $entities
+ * @param $type
+ */
+function blr_countdown_entity_load($entities, $type) {
+  if ($type == 'bean') {
+    foreach ($entities as $bean) {
+      if ($bean->type == 'countdown') {
+        $date = field_get_items($type, $bean, "field_date");
+        $date = $date[0]['value'];
+        drupal_add_js(array("blr_countdown" => array(str_replace("-", "_", $bean->delta) => array("countdownDate" => $date, "blockID" => $bean->delta, "title" => $bean->title))), array("type" => "setting"));
+      }
+    }
+  }
+}
+
+function blr_countdown_shortcode_info() {
+  $shortcodes['countdown'] = array(
+    'title' => t('Countdown'),
+    'description' => t('Countdown Timer'),
+    'process callback' => 'blr_countdown_countdown_timer',
+    'tips callback' => 'blr_countdown_shortcode_countdown_tip',
+  );
+
+  return $shortcodes;
+}
+
+function blr_countdown_theme() {
+  return array(
+    'countdown_timer' => array(
+      'variables' => array('title' => '', 'date' => ''),
+    ),
+  );
+}
+
+function theme_countdown_timer($vars) {
+  return "<div class='countdown-wrapper'><div class='countdown-shortcode'><span class='countdown-title'>{$vars['title']}</span><span class='field-name-field-date'>{$vars['date']}</span></div></div>";
+}
+
+function blr_countdown_countdown_timer($attrs) {
+  $attrs = shortcode_attrs(array(
+    'title' => 'New Event',
+    'date' => date("Y/m/d H:i:s"),
+  ), $attrs );
+
+  return theme('countdown_timer', array('title' => $attrs['title'], 'date' => date($attrs['date'])));
+}
+
+function blr_countdown_shortcode_countdown_tip($format, $long) {
+  $output = array();
+  $output[] = '<p><strong>' . t('[countdown title="Event Title" date="YYYY/MM/DD hh:mm:ss"][/countdown]') . '</strong> ';
+  if ($long) {
+    $output[] = t('Outputs a countdown timer for the given date with the given title') . '</p>';
+  }
+  else {
+    $output[] = t('Outputs a countdown timer') . '</p>';
+  }
+
+  return implode(' ', $output);
+}

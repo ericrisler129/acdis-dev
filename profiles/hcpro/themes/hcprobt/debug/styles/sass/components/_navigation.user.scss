@@ -1,0 +1,25 @@
+.block-user-nav {
+  float: right;
+
+  .menu {
+    li {
+      position: relative;
+
+      a {
+        font-weight: normal;
+      }
+
+      &:hover {
+        .menu {
+          display: block;
+        }
+      }
+
+      .menu {
+        position: absolute;
+        display: none;
+        right: 0;
+      }
+    }
+  }
+}

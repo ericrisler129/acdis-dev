@@ -1,0 +1,247 @@
+/* Required Imports */
+/*** Colors ***/
+/* Colors - Text */
+/* Colors - Background */
+/* Colors - Forms */
+/* Colors - Buttons */
+/* Typography */
+/* Master Font sizes */
+/* Element font sizes */
+/* Grid Setup */
+/* Layout */
+/* Breakpoints */
+/* Required Imports */
+/*** Colors ***/
+/* Colors - Text */
+/* Colors - Background */
+/* Colors - Forms */
+/* Colors - Buttons */
+/* Colors - Misc */
+/* Typography */
+/* Master Font sizes */
+/* Element font sizes */
+/* Grid Setup */
+/* Layout */
+/* Breakpoints */
+/* line 5, ../base-sass/acdis.layout.scss */
+.style-btn-green img {
+  display: none;
+}
+/* line 8, ../base-sass/acdis.layout.scss */
+.style-btn-green a {
+  transition: all 0.3s ease;
+  display: inline-block;
+  padding: 5px 30px;
+  border: 2px solid #56b75b;
+  background-color: #56b75b;
+  color: #56b75b;
+  width: 150px;
+  overflow: hidden;
+  height: 39px;
+  margin: 10px 0px;
+  position: relative;
+}
+/* line 20, ../base-sass/acdis.layout.scss */
+.style-btn-green a:active, .style-btn-green a:focus, .style-btn-green a:hover {
+  background-color: #7ac67e;
+  color: #7ac67e;
+}
+/* line 26, ../base-sass/acdis.layout.scss */
+.style-btn-green a:after {
+  content: 'Download';
+  display: inline-block;
+  color: #fff;
+  position: absolute;
+  top: 7px;
+  left: 28%;
+}
+
+/* line 37, ../base-sass/acdis.layout.scss */
+.max-width, .l-site-width, .l-section-header, .l-masthead, .l-main {
+  max-width: 1070px;
+  margin: auto;
+}
+
+/* line 13, ../../../../../../../../../../../../../lib/gems/2.3.0/gems/toolkit-2.10.2/stylesheets/toolkit/_clearfix.scss */
+.l-header:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+/* line 49, ../base-sass/acdis.layout.scss */
+.l-header .l-branding {
+  float: left;
+}
+/* line 53, ../base-sass/acdis.layout.scss */
+.l-header .l-region--header {
+  float: right;
+}
+
+/* line 62, ../base-sass/acdis.layout.scss */
+.l-section-header {
+  margin: 20px auto 0;
+}
+
+/* line 73, ../base-sass/acdis.layout.scss */
+.l-masthead .l-region--masthead {
+  margin: 0 0 10px;
+}
+/* line 77, ../base-sass/acdis.layout.scss */
+.front .l-masthead .l-region--masthead {
+  margin-bottom: 20px;
+}
+
+/* line 83, ../base-sass/acdis.layout.scss */
+.l-main {
+  padding: 20px;
+  margin: 0 auto 20px;
+}
+/* line 13, ../../../../../../../../../../../../../lib/gems/2.3.0/gems/toolkit-2.10.2/stylesheets/toolkit/_clearfix.scss */
+.l-main:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+/* line 89, ../base-sass/acdis.layout.scss */
+.l-main .l-content {
+  padding: 0 0 20px;
+  clear: both;
+}
+/* line 93, ../base-sass/acdis.layout.scss */
+.front .l-main .l-content {
+  padding: 0;
+}
+@media (min-width: 768px) {
+  /* line 97, ../base-sass/acdis.layout.scss */
+  .has-one-sidebar.has-sidebar-first .l-main .l-content {
+    width: 70.83333%;
+    float: right;
+    margin-left: 0;
+    margin-right: 0;
+    clear: none;
+    padding-right: 0;
+  }
+}
+@media (min-width: 1024px) {
+  /* line 97, ../base-sass/acdis.layout.scss */
+  .has-one-sidebar.has-sidebar-first .l-main .l-content {
+    width: 79.16667%;
+    float: right;
+    margin-left: 0;
+    margin-right: 0;
+    clear: none;
+    padding-right: 0;
+  }
+}
+@media (min-width: 768px) {
+  /* line 107, ../base-sass/acdis.layout.scss */
+  .has-one-sidebar.has-sidebar-second .l-main .l-content {
+    width: 70.83333%;
+    float: left;
+    margin-right: -100%;
+    clear: none;
+    padding-right: 20px;
+  }
+}
+@media (min-width: 768px) {
+  /* line 113, ../base-sass/acdis.layout.scss */
+  .has-two-sidebars .l-main .l-content {
+    width: 70.83333%;
+    float: right;
+    margin-left: 0;
+    margin-right: 0;
+    clear: none;
+    padding-right: 0;
+  }
+}
+@media (min-width: 1024px) {
+  /* line 113, ../base-sass/acdis.layout.scss */
+  .has-two-sidebars .l-main .l-content {
+    width: 50%;
+    float: left;
+    margin-right: -100%;
+    margin-left: 20.83333%;
+    clear: none;
+    padding-right: 20px;
+  }
+}
+@media (min-width: 768px) {
+  /* line 124, ../base-sass/acdis.layout.scss */
+  .l-main .l-region--sidebar-first {
+    width: 29.16667%;
+    float: left;
+    margin-right: -100%;
+    clear: none;
+    padding-right: 20px;
+  }
+}
+@media (min-width: 1024px) {
+  /* line 124, ../base-sass/acdis.layout.scss */
+  .l-main .l-region--sidebar-first {
+    width: 20.83333%;
+    float: left;
+    margin-right: -100%;
+    clear: none;
+    padding-right: 20px;
+  }
+}
+@media (min-width: 768px) {
+  /* line 135, ../base-sass/acdis.layout.scss */
+  .has-one-sidebar .l-main .l-region--sidebar-second {
+    width: 29.16667%;
+    float: right;
+    margin-left: 0;
+    margin-right: 0;
+    clear: none;
+    padding-right: 0;
+  }
+}
+@media (min-width: 768px) {
+  /* line 141, ../base-sass/acdis.layout.scss */
+  .has-two-sidebars .l-main .l-region--sidebar-second {
+    width: 29.16667%;
+    float: left;
+    margin-right: -100%;
+    clear: none;
+    padding-right: 20px;
+    clear: left;
+  }
+}
+@media (min-width: 1024px) {
+  /* line 141, ../base-sass/acdis.layout.scss */
+  .has-two-sidebars .l-main .l-region--sidebar-second {
+    width: 29.16667%;
+    float: right;
+    margin-left: 0;
+    margin-right: 0;
+    clear: none;
+    padding-right: 0;
+  }
+}
+/* line 153, ../base-sass/acdis.layout.scss */
+.l-main .tabs--primary,
+.l-main .messages {
+  clear: both;
+}
+
+/* line 159, ../base-sass/acdis.layout.scss */
+.l-content-bottom {
+  clear: both;
+}
+
+/* line 163, ../base-sass/acdis.layout.scss */
+.l-footer-top {
+  background-color: #1c1c1c;
+  padding: 14px;
+}
+/* line 13, ../../../../../../../../../../../../../lib/gems/2.3.0/gems/toolkit-2.10.2/stylesheets/toolkit/_clearfix.scss */
+.l-footer-top:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* line 169, ../base-sass/acdis.layout.scss */
+.hcpro-logo {
+  max-width: 200px;
+}

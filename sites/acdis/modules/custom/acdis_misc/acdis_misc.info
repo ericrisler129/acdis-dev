@@ -1,0 +1,6 @@
+name = Misc Functions
+package = Custom
+core = 7.x
+files[] = acdis_misc.module
+
+dependencies[] = blr_webauth

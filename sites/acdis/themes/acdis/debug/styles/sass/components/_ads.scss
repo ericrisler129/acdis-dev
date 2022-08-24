@@ -1,0 +1,22 @@
+.l-region--leaderboard-top {
+  display: none;
+  text-align: center;
+  margin: 10px 0;
+
+  & > .block {
+    display: inline-block;
+    vertical-align: middle;
+
+    &.block--dfp-button1 {
+      margin: 0 0 0 20px;
+    }
+  }
+
+  @include breakpoint($tabSmall) {
+    display: block;
+  }
+}
+
+#dfp-ad-oop-wrapper {
+  display: block;
+}

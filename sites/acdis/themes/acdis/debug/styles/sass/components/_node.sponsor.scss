@@ -1,0 +1,29 @@
+.node {
+  &.node--sponsor {
+    &.view-mode-full {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 0 15px;
+
+      .field-name-title {
+        font-size: $FSlarge;
+        font-weight: $primaryFontWeightMed;
+        width: 100%;
+        color: $brand2;
+      }
+
+      .field-name-field-image {
+        img {
+          max-height: 50px;
+          width: auto;
+        }
+      }
+    }
+  }
+}
+
+.field-name-sponsor-heading {
+  font-size: $FSsmall;
+  color: $brand2;
+}

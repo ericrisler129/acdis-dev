@@ -1,0 +1,5 @@
+name = Show inaccessible menu link
+description = "Enables the webmaster to show specific menu links that are not accessible by the current user."
+core = 7.x
+package = Menu
+dependencies[] = menu

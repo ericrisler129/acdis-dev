@@ -1,0 +1,6 @@
+name = BLR Node Access
+description = "Membership Access Control"
+package = Custom
+version = "2.0"
+core = 7.x
+

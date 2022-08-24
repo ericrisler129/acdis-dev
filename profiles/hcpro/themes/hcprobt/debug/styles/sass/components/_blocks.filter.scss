@@ -1,0 +1,81 @@
+// News / Analysis / Resources Search
+.block-filter-search {
+  position: relative;
+
+  .views-exposed-widget {
+    float: none;
+    padding: 0;
+
+    input {
+      max-width: 100%;
+    }
+
+    &.views-widget-filter-field_section_tid {
+      margin: 10px 0 0;
+
+      label {
+        display: inline-block;
+      }
+
+      .views-widget {
+        display: inline-block;
+      }
+    }
+  }
+
+  .views-submit-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+}
+
+// Resources Type Filter
+.block-filter-resource-types {
+  .views-exposed-widgets {
+    position: relative;
+    margin: 0;
+    background-color: $tableEvenBG;
+
+    .views-exposed-widget {
+      padding: 0;
+      float: none;
+
+      .form-item {
+        @include clearfix;
+
+        .form-type-bef-link {
+          text-align: center;
+          float: left;
+          width: 20%;
+
+          @include breakpoint(max-width 600px) {
+            width: 50%;
+          }
+
+          a {
+            display: block;
+            padding: 20px 5px;
+            color: $copy;
+
+            &.active {
+              font-style: italic;
+              font-weight: $primaryFontWeightBold;
+              background-color: #dedede;
+            }
+
+            &:hover {
+              background-color: #dedede;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .views-submit-button {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+}

@@ -1,0 +1,14 @@
+name = HCPro REST Endpoint
+core = 7.x
+package = HCPro Features
+version = 7.x-1.0
+dependencies[] = rest_server
+dependencies[] = services
+dependencies[] = services_views
+dependencies[] = views
+features[ctools][] = services:services:3
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:2
+features[services_endpoint][] = rest
+features[views_view][] = rest
+features_exclude[dependencies][ctools] = ctools

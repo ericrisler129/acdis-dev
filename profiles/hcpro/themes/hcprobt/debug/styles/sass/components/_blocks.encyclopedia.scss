@@ -1,0 +1,20 @@
+.block-encyclopedia-search {
+  p {
+    margin: 0 0 10px;
+  }
+
+  .azlinks {
+    text-align: center;
+    letter-spacing: -0.05em;
+    cursor: pointer;
+
+    a {
+      font-size: $FSsmall;
+      color: $nonArticleLink;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}

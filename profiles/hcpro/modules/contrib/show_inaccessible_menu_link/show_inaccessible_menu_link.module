@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function show_inaccessible_menu_link_help($path, $arg) {
+  if ($path == 'admin/help#show_inaccessible_menu_link') {
+    return t("<p>Drupal automatically hides menu items for paths that are not
+      accessible by the current visitor. This is often very useful, but
+      occasionally it is preferable to show the menu item, and show an 'access
+      denied' page after the user clicks on it.</p>
+
+      <p>Unfortunately, there is no such functionality in the Drupal core. This
+      module aims to fill this gap. It adds a new form element titled
+      'Ignore access' to the menu link edit screen. To use it, one or more
+      of the roles should be selected. If a visitor has one of the selected
+      roles the menu item will always be rendered, even if the current user
+      has no access to it!</p>
+
+      <p>If a visitor clicks on such a link but has no access to it, the
+      standard Drupal 'access denied' 403 page is shown.</p>
+
+      <p>To install, simply enable the module.</p>
+    ");
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function show_inaccessible_menu_link_form_menu_edit_item_alter(&$form, &$form_state, $form_id) {
+  if ($form_state['build_info']['args'][0] == 'edit') {
+    $item = $form_state['build_info']['args'][1];
+
+    $form['ignore_access_roles'] = array(
+      '#type' => 'checkboxes',
+      '#multiple' => TRUE,
+      '#title' => t("Ignore access"),
+      '#options' => user_roles(),
+      '#description' => t("If a user with one of the selected roles has no access to the menu item's path, the menu item is <strong>not</strong> hidden."),
+      '#default_value' => empty($item['options']['ignore_access_roles']) ? array() : $item['options']['ignore_access_roles'],
+    );
+
+    $form['#validate'][] = 'show_inaccessible_menu_link_form_menu_edit_item_validate';
+  }
+}
+
+/**
+ * Validation hook for show_inaccessible_menu_link_form_menu_edit_item_alter.
+ */
+function show_inaccessible_menu_link_form_menu_edit_item_validate(&$form, &$form_state) {
+  if (isset($form_state['values']['ignore_access_roles'])) {
+    $form_state['values']['options']['ignore_access_roles'] = $form_state['values']['ignore_access_roles'];
+
+    // See _menu_link_translate. Alter must be set to TRUE to enable the
+    // drupal_alter statement.
+    $form_state['values']['options']['alter'] = TRUE;
+  }
+}
+
+/**
+ * Implements hook_translated_menu_link_alter().
+ */
+function show_inaccessible_menu_link_translated_menu_link_alter(&$link, $map) {
+  if (!empty($link['options']['ignore_access_roles']) && empty($link['access'])) {
+
+    global $user;
+
+    // Get role ids for which the ignore access option applies.
+    $rids = array_values($link['options']['ignore_access_roles']);
+
+    $matching_rids = array_intersect(array_keys($user->roles), $rids);
+
+    if (!empty($matching_rids)) {
+      // User has one of the specified roles: override menu link access.
+      $link['access'] = TRUE;
+
+      // Localize. This must be done because it is only done for links with
+      // access TRUE in _menu_link_translate.
+      _menu_item_localize($link, $map, TRUE);
+    }
+  }
+}

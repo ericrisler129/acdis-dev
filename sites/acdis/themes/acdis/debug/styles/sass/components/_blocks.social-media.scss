@@ -1,0 +1,12 @@
+.block-network-social-media {
+  .block__content {
+    @include clearfix;
+  }
+
+  a {
+    text-align: center;
+    float: left;
+    width: 50%;
+    margin: 0 0 25px;
+  }
+}

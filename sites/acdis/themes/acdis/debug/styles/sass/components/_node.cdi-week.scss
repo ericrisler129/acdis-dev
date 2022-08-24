@@ -1,0 +1,122 @@
+// Main page
+.view-cdi-week {
+  &.view-display-id-block {
+    .views-row {
+      margin: 0 0 20px;
+    }
+  }
+}
+
+// Toolkit
+.page-node-2754 {
+  .toolkit-grid {
+    @include clearfix;
+
+    .toolkit-grid-item {
+      text-align: center;
+      float: left;
+      width: 33%;
+
+      p {
+        font-size: $FSlarge;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: $brand1;
+      }
+    }
+  }
+}
+
+/*
+// Webcasts
+.page-node-2759 {
+  .cdi-event {
+    margin: 0 0 20px;
+    padding: 0 0 0 70px;
+    background: image-url('lightbulb.png') no-repeat;
+  }
+}
+
+// Webcasts
+.page-node-2760 {
+  .block-cdi-week-webcasts {
+    .views-row {
+      margin: 0 0 20px;
+
+      .node {
+        padding: 0 0 0 70px;
+        background: image-url('tv.png') no-repeat;
+      }
+    }
+  }
+}
+// Materials
+.page-node-2762 {
+  .block-cdi-week-materials {
+    .views-row {
+      margin: 0 0 20px;
+
+      .node {
+        padding: 0 0 0 70px;
+        background: image-url('materials.png') no-repeat;
+      }
+    }
+  }
+}
+// Posters
+.page-node-2763 {
+  .block-cdi-week-posters {
+    .views-row {
+      margin: 0 0 20px;
+
+      .node {
+        padding: 0 0 0 70px;
+        background: image-url('poster.png') no-repeat;
+      }
+    }
+  }
+}
+
+// Activities
+.page-node-2731 {
+  .block-cdi-week-form-activity {
+    textarea {
+      padding: 10px;
+    }
+
+    .form-actions {
+      text-align: right;
+      clear: both;
+      margin: 0;
+
+      .webform-submit {
+        @include button($buttonGreen);
+      }
+    }
+  }
+}
+*/
+
+// Exposed Filters
+.views-widget-filter-field_cdi_week_target_id {
+  label {
+    font-size: $FSlarge;
+    vertical-align: middle;
+    margin: 0 10px 0 0;
+  }
+
+  .views-widget {
+    display: inline-block;
+    vertical-align: middle;
+
+    .chosen-single {
+      font-size: $FSdefault;
+      height: 30px;
+      line-height: 30px;
+
+      b {
+        background-position: 0 6px;
+      }
+    }
+  }
+}

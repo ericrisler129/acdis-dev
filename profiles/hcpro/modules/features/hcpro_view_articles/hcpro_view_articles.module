@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the hcpro_view_articles feature.
+ */
+
+include_once 'hcpro_view_articles.features.inc';

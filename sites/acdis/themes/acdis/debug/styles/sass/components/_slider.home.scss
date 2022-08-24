@@ -1,0 +1,41 @@
+.slider-home {
+  @include flexreset;
+
+  .flexslider {
+    margin: 0 0 50px;
+
+    .flex-control-nav {
+      bottom: -38px;
+
+      li {
+        a {
+          width: 15px;
+          height: 15px;
+        }
+      }
+    }
+
+    .group-left {
+      float: none;
+      width: 100%;
+      padding: $gutterSize;
+    }
+
+    .group-right {
+      float: none;
+      width: 100%;
+      padding: $gutterSize;
+    }
+
+    @include breakpoint($mobile) {
+      .group-left {
+        @include grid-span(10, 1);
+      }
+
+      .group-right {
+        @include grid-span(7, 11);
+        padding: $gutterSize $gutterSize $gutterSize 0;
+      }
+    }
+  }
+}

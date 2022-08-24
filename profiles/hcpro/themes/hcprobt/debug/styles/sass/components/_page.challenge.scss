@@ -1,0 +1,126 @@
+.page-membership-check,
+.page-membership-upgrade,
+.page-lc-check,
+.page-user-login {
+  .l-content {
+    @include clearfix;
+
+    .page-title {
+      @include clearfix;
+      margin: 0 0 15px;
+      border-bottom: 1px solid #999999;
+
+      .lock-icon {
+        float: left;
+        margin: 0 10px 0 0;
+		padding-bottom: 15px;
+
+        i {
+          @include border-radius(50%);
+          padding: 8px 13px;
+          color: #ffffff;
+          background-color: #cccccc;
+        }
+      }
+
+      h1 {
+        font-size: $FSextraLarge;
+        color: #dc0800;
+        padding-top: 10px;
+      }
+    }
+
+    .subheading {
+      font-weight: bold;
+    }
+
+    .block-title {
+      font-size: $FSextraLarge;
+      font-weight: $primaryFontWeightBold;
+    }
+
+    .login-wrapper {
+      clear: both;
+      float: left;
+      width: 50%;
+      padding: 0 $gutterSize 0 0;
+      border-right: 1px solid #999999;
+
+      form {
+        padding: $gutterSize;
+        background-color: #f2f2f2;
+
+        .form-item {
+          margin: 0 0 18px;
+
+          label {
+            font-weight: bold;
+            color: #666666;
+
+            .form-required {
+              display: none;
+            }
+          }
+
+          input {
+            max-width: 100%;
+            height: 45px;
+            padding: 0 10px;
+            border: 1px solid $inputBorder;
+          }
+        }
+      }
+    }
+
+    .register-wrapper {
+      float: left;
+      width: 50%;
+      padding: 0 0 0 $gutterSize;
+
+      .register-inner {
+        padding: $gutterSize;
+        background-color: #f2f2f2;
+      }
+    }
+
+    .upgrade-wrapper {
+      @include clearfix;
+      padding: $gutterSize;
+      background-color: #f2f2f2;
+
+      p {
+        margin: 0 0 $gutterSize;
+
+        @include breakpoint($tabSmall) {
+          float: left;
+          margin: 0;
+          width: 75%;
+        }
+      }
+
+      .upgrade-links {
+        @include breakpoint($tabSmall) {
+          text-align: right;
+          float: left;
+          width: 25%;
+        }
+
+        .button {
+          text-align: center;
+
+          @include breakpoint($tabSmall) {
+            margin: 0 0 10px;
+          }
+
+          &:last-child {
+            margin: 0;
+          }
+
+          a {
+            min-width: 150px;
+          }
+        }
+      }
+    }
+  }
+}

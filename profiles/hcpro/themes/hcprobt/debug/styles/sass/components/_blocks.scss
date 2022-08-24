@@ -1,0 +1,59 @@
+.block {
+  &.standard-block {
+    margin: 0 0 $gutterSize;
+    border: 1px solid $hr;
+    overflow: hidden;
+
+    .title-wrapper {
+      .block__title {
+        font-size: $FSbase;
+        text-align: center;
+        text-transform: uppercase;
+        padding: 10px;
+        margin: 0;
+        border-bottom: 1px solid $hr;
+
+        a {
+          color: $copy;
+        }
+      }
+    }
+
+    .block__content {
+      padding: $gutterSize;
+    }
+
+    &.noborder {
+      border: none;
+
+      .block__title {
+        border: none;
+      }
+    }
+
+    &.nopadding {
+      .block__content {
+        padding: 0;
+      }
+    }
+
+    &.nomargin {
+      margin: 0;
+    }
+
+    &.block-center {
+      text-align: center;
+    }
+  }
+}
+
+h1.standard-block-title,
+.standard-block-title .block__title {
+  font-size: $FSbase;
+  text-align: center;
+  text-transform: uppercase;
+  border: 1px solid $hr;
+  border-top: 8px solid $navBG;
+  padding: 10px;
+  margin: 0 0 $gutterSize;
+}

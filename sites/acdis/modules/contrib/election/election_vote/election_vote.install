@@ -1,0 +1,354 @@
+<?php
+
+/**
+ * @file
+ * Install functions for the Election Vote module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function election_vote_schema() {
+  // Needed during uninstall when the election module is disabled.
+  require_once __DIR__ . '/../includes/election.constants.inc';
+
+  $schema = array();
+
+  $schema['election_vote'] = array(
+    'description' => 'The votes table for the election module.',
+    'fields' => array(
+      'election_id' => array(
+        'description' => 'The election in which the vote was cast. Relates to {election}.election_id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'post_id' => array(
+        'description' => 'Relates to {election_post}.post_id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'ballot_id' => array(
+        'description' => 'Relates to {election_ballot}.ballot_id. NULL means the vote is fully anonymized.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+      ),
+      'answer' => array(
+        'description' => sprintf(
+          'For referendums: the answer (no %d or yes %d). NULL means it is not a referendum.',
+          ELECTION_ANSWER_NO,
+          ELECTION_ANSWER_YES
+        ),
+        'type' => 'int',
+        'size' => 'tiny',
+      ),
+      'candidate_id' => array(
+        'description' => 'For elections: The candidate being ranked. NULL means it is not an election.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+      ),
+      'rank' => array(
+        'description' => 'For ranked elections: the rank of the candidate in the ballot. NULL means it is not a ranked election.',
+        'type' => 'int',
+      ),
+      'ron' => array(
+        'description' => 'For ranked elections: whether or not the candidate being ranked is RON (Re-Open Nominations).',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'ballot_id' => array('ballot_id'),
+      'election_id' => array('election_id'),
+      'post_id' => array('post_id'),
+      'candidate_id' => array('candidate_id'),
+      'rank' => array('rank'),
+      'ron' => array('ron'),
+      'answer' => array('answer'),
+    ),
+    'foreign keys' => array(
+      'election' => array(
+        'table' => 'election',
+        'columns' => array('election_id' => 'election_id'),
+      ),
+      'post' => array(
+        'table' => 'election_post',
+        'columns' => array('post_id' => 'post_id'),
+      ),
+      'ballot' => array(
+        'table' => 'election_ballot',
+        'columns' => array('ballot_id' => 'ballot_id'),
+      ),
+    ),
+  );
+
+  $schema['election_ballot'] = array(
+    'description' => 'The ballots table for the election module. This records the act of voting, but the voting preferences themselves are in the table {election_vote}.',
+    'fields' => array(
+      'ballot_id' => array(
+        'description' => 'Primary key: identifier for a ballot.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'election_id' => array(
+        'description' => 'The election in which the ballot was cast. Relates to {election}.election_id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'post_id' => array(
+        'description' => 'The post for which the ballot was cast. Relates to {election_post}.post_id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      // Note that multiple ballots can be cast per UID. This is partly because
+      // voting by anonymous users is supported (where the UID is always 0), and
+      // partly because users may be allowed to 'undo' their previous vote and
+      // vote again (the 'value' of the previous ballot is then set to 0). So
+      // the uniqueness of votes is ensured in PHP code rather than at the
+      // database level. See <https://www.drupal.org/node/2627710>.
+      'uid' => array(
+        'description' => 'The {users}.uid of the voter. NULL means the user is not stored to maintain anonimity.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+      ),
+      'ip' => array(
+        'description' => 'The IP address of the voter (v4 or v6). NULL means the IP is not stored to maintain anonimity.',
+        'type' => 'varchar',
+        'length' => 255,
+      ),
+      'agent' => array(
+        'description' => 'The HTTP User Agent of the voter. NULL means the user agent is not known.',
+        'type' => 'varchar',
+        'length' => 255,
+      ),
+      'sid_hash' => array(
+        'description' => 'An MD5 hash of the voter\'s session ID.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'timestamp' => array(
+        'description' => 'A UNIX timestamp for when the ballot was cast.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'abstain' => array(
+        'description' => 'Whether or not the voter abstained.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      // See election_vote_get_ballot_value().
+      'value' => array(
+        'description' => 'The value of the ballot: usually 1. If set to 0, the ballot will not be counted.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+    ),
+    'primary key' => array('ballot_id'),
+    'indexes' => array(
+      'election_id' => array('election_id'),
+      'post_id' => array('post_id'),
+      'uid' => array('uid'),
+      'agent' => array('agent'),
+      'timestamp' => array('timestamp'),
+      'ip' => array('ip'),
+      'sid_hash' => array('sid_hash'),
+      'abstain' => array('abstain'),
+      'value' => array('value'),
+    ),
+    'foreign keys' => array(
+      'election' => array(
+        'table' => 'election',
+        'columns' => array('election_id' => 'election_id'),
+      ),
+      'post' => array(
+        'table' => 'election_post',
+        'columns' => array('post_id' => 'post_id'),
+      ),
+      'user' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
+  );
+
+  return $schema;
+
+}
+
+/**
+ * Add the 'valid' column to the election_vote and election_ballot tables.
+ */
+function election_vote_update_7001() {
+  // Obsolete.
+}
+
+/**
+ * Add the 'value' column, replacing 'valid'.
+ */
+function election_vote_update_7002() {
+  $schema = array(
+    'description' => 'The value of the ballot. If set to 0, the ballot will not be counted.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 1,
+  );
+
+  if (db_field_exists('election_ballot', 'valid')) {
+    if (db_index_exists('election_ballot', 'valid')) {
+      db_drop_index('election_ballot', 'valid');
+    }
+    db_change_field('election_ballot', 'valid', 'value', $schema);
+    db_add_index('election_ballot', 'value', array('value'));
+  }
+  elseif (!db_field_exists('election_ballot', 'value')) {
+    db_add_field('election_ballot', 'value', $schema);
+    db_add_index('election_ballot', 'value', array('value'));
+  }
+
+  if (db_field_exists('election_vote', 'valid')) {
+    db_drop_index('election_vote', 'valid');
+    db_drop_field('election_vote', 'valid');
+  }
+}
+
+/**
+ * Move election_vote.abstain to election_ballot.abstain.
+ */
+function election_vote_update_7003() {
+  if (!db_field_exists('election_ballot', 'abstain')) {
+    db_add_field('election_ballot', 'abstain', array(
+      'description' => 'Whether or not the voter abstained.',
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+    ));
+    db_add_index('election_ballot', 'abstain', array('abstain'));
+  }
+  if (db_field_exists('election_vote', 'abstain')) {
+    $query = db_select('election_vote', 'ev');
+    $query->fields('ev', array('ballot_id'));
+    $query->condition('ev.abstain', 1);
+    $query->distinct();
+    $ballot_ids = $query->execute()->fetchCol();
+    if (!empty($ballot_ids)) {
+      db_update('election_ballot')
+        ->fields(array('abstain' => 1))
+        ->condition('ballot_id', $ballot_ids, 'IN')
+        ->execute();
+      db_delete('election_vote')
+        ->condition('abstain', 1);
+    }
+  }
+}
+
+/**
+ * Blank update, left for backwards compatibility.
+ */
+function election_vote_update_7004() {
+  // This update added the one_vote_per_person unique key, but the key is
+  // removed in a later update (7006).
+}
+
+/**
+ * Blank update, left for backwards compatibility.
+ */
+function election_vote_update_7005() {
+  // This update modified the one_vote_per_person unique key, but the key is
+  // removed in a later update (7006).
+}
+
+/**
+ * Remove the one_vote_per_person unique index.
+ *
+ * @see https://drupal.org/node/2627710
+ */
+function election_vote_update_7006() {
+  if (db_index_exists('election_ballot', 'one_vote_per_person')) {
+    db_drop_unique_key('election_ballot', 'one_vote_per_person');
+  }
+}
+
+/**
+ * Make certain columns NOT NULL.
+ */
+function election_vote_update_7107() {
+  db_drop_index('election_vote', 'election_id');
+  db_change_field('election_vote', 'election_id', 'election_id', array(
+    'description' => 'The election in which the vote was cast. Relates to {election}.election_id.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+  ), array('indexes' => array('election_id' => array('election_id'))));
+
+  db_drop_index('election_vote', 'post_id');
+  db_change_field('election_vote', 'post_id', 'post_id', array(
+    'description' => 'Relates to {election_post}.post_id.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+  ), array('indexes' => array('post_id' => array('post_id'))));
+
+  db_drop_index('election_ballot', 'election_id');
+  db_change_field('election_ballot', 'election_id', 'election_id', array(
+    'description' => 'The election in which the ballot was cast. Relates to {election}.election_id.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+  ), array('indexes' => array('election_id' => array('election_id'))));
+
+  db_drop_index('election_ballot', 'post_id');
+  db_change_field('election_ballot', 'post_id', 'post_id', array(
+    'description' => 'The post for which the ballot was cast. Relates to {election_post}.post_id.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+  ), array('indexes' => array('post_id' => array('post_id'))));
+}
+
+/**
+ * Remove unneccessary default values from database schema.
+ */
+function election_vote_update_7108() {
+  db_drop_index('election_ballot', 'agent');
+  db_change_field('election_ballot', 'agent', 'agent', array(
+    'description' => 'The HTTP User Agent of the voter. NULL means the user agent is not known.',
+    'type' => 'varchar',
+    'length' => 255,
+  ), array('indexes' => array('agent' => array('agent'))));
+
+  db_drop_index('election_ballot', 'sid_hash');
+  db_change_field('election_ballot', 'sid_hash', 'sid_hash', array(
+    'description' => 'An MD5 hash of the voter\'s session ID.',
+    'type' => 'varchar',
+    'length' => 32,
+    'not null' => TRUE,
+  ), array('indexes' => array('sid_hash' => array('sid_hash'))));
+
+  db_drop_index('election_ballot', 'timestamp');
+  db_change_field('election_ballot', 'timestamp', 'timestamp', array(
+    'description' => 'A UNIX timestamp for when the ballot was cast.',
+    'type' => 'int',
+    'not null' => TRUE,
+  ), array('indexes' => array('timestamp' => array('timestamp'))));
+}
+
+/**
+ * Remove field election_vote.vote_id to improve anonymity.
+ */
+function election_vote_update_7109() {
+  db_drop_index('election_vote', 'vote_id');
+  db_drop_field('election_vote', 'vote_id');
+}

@@ -1,0 +1,11 @@
+name = Election Cron
+description = Provides API hooks for scheduled actions.
+core = 7.x
+package = Election
+dependencies[] = election
+
+; Information added by Drupal.org packaging script on 2019-08-15
+version = "7.x-1.5"
+core = "7.x"
+project = "election"
+datestamp = "1565892488"

@@ -1,0 +1,40 @@
+.block-search-content {
+  float: right;
+
+  .form-type-textfield {
+    float: left;
+    margin: 0;
+
+    input {
+      font-size: $FSsmall;
+      text-align: right;
+      width: 220px;
+      max-width: 100%;
+      height: 42px;
+      padding: 0 10px;
+      border: none;
+      color: $nonArticleLink;
+      background-color: #f2f2f2;
+    }
+  }
+
+  .form-actions {
+    float: left;
+    margin: 0;
+  }
+
+  .form-type-select {
+    clear: both;
+    text-align: right;
+
+    label {
+      display: inline-block;
+    }
+
+    select {
+      display: inline-block;
+      width: 195px;
+      max-width: 100%;
+    }
+  }
+}

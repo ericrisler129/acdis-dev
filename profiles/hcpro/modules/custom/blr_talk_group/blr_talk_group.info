@@ -1,0 +1,5 @@
+name = BLR Talk Group
+description = "Generates talk group page and subscribe/unsubscribe functionality"
+package = Custom
+version = "1.0"
+core = 7.x

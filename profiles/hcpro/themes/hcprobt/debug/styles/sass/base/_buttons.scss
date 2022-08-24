@@ -1,0 +1,49 @@
+.button {
+  display: inline-block;
+  margin: 0 10px 0 0;
+
+  &:last-child {
+    margin: 0;
+  }
+
+  a,
+  button {
+    &.button-brand1 {
+      @include button($brand1);
+    }
+
+    &.button-green {
+      @include button($buttonGreen);
+    }
+
+    &.button-blue {
+      @include button($buttonBlue);
+    }
+
+    &.button-grey {
+      @include button($buttonGrey);
+    }
+
+    &.button-caps {
+      font-weight: $primaryFontWeightMed;
+      text-transform: uppercase;
+    }
+  }
+}
+
+.group-buttons {
+  text-align: center;
+  margin: 20px 0 0;
+
+  &.rightalign {
+    text-align: right;
+  }
+
+  &.leftalign {
+    text-align: left;
+  }
+
+  &.nomargin {
+    margin: 0;
+  }
+}

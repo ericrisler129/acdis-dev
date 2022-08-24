@@ -1,0 +1,489 @@
+<?php
+
+/**
+ * @file
+ * Primary module file for the election_fptp module.
+ */
+
+/**
+ * Form modifying function - voting form (election-post/%election_post/vote).
+ */
+function election_fptp_vote_form(&$form, &$form_state) {
+
+  $post = $form_state['post'];
+  $election = $post->election;
+
+  // Load candidates.
+  $candidates = election_candidate_load_by_post($post, array(ELECTION_CANDIDATE_HOPEFUL));
+  $form_state['candidates'] = $candidates;
+
+  if (!count($candidates)) {
+    drupal_set_message(t('Voting is currently closed: there are no published candidates standing for this @post.', array('@post' => election_get_post_name($election->type))), 'warning', FALSE);
+    $form['#disabled'] = TRUE;
+    drupal_goto(election_post_uri_path($post));
+  }
+
+  $form['post'] = array(
+    '#type' => 'item',
+    '#title' => drupal_ucfirst(election_get_post_name($election->type)),
+    '#markup' => t('@title (!view details)', array(
+      '@title' => $post->title,
+      '!view details' => l(t('view details'), election_post_uri_path($post)),
+    )),
+  );
+
+  $form['ballot_paper'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Your ballot paper'),
+    '#attributes' => array('class' => array('election-ballot-paper')),
+  );
+
+  if ((int) $post->vacancy_count === 1) {
+    $form['ballot_paper']['#description'] = t('Please select your preferred candidate from the list.');
+  }
+  else {
+    $form['ballot_paper']['#description'] = t('Please select your preferred candidate(s) from the list. Vote for a maximum of %vacancy_count candidates.', array('%vacancy_count' => (int) $post->vacancy_count));
+  }
+
+  if (count($candidates) > 1) {
+    $form['ballot_paper']['#description'] .= ' ' . t('Candidates are displayed in a random order.');
+  }
+
+  $form_type = isset($post->settings['vote_form_type']) ? $post->settings['vote_form_type'] : 'default';
+
+  // If there is no setting, decide on the best form type (select or radios).
+  if ($form_type == 'default' || !in_array($form_type, array('radios', 'select'))) {
+    $form_type = 'radios';
+    if (count($candidates) < 2 || count($candidates) > 10) {
+      $form_type = 'select';
+    }
+  }
+
+  $candidate_options = array();
+  // Count how many categories are in use by the candidates.
+  $candidate_categories_in_use = array();
+  foreach ($candidates as $candidate) {
+    // Default is 0 if existing candidate_category does not exist in
+    // candidate_categories.
+    $candidate->candidate_category = isset($post->settings['candidate_categories'][$candidate->candidate_category]) ? $candidate->candidate_category : 0;
+    $candidate_categories_in_use[$candidate->candidate_category] = TRUE;
+
+    // The form API will sanitize the candidate's name when the $form_type is
+    // 'select', but not when it's 'radios'.
+    $sanitize = $form_type != 'select';
+    $candidate_options[$candidate->candidate_id] = election_candidate_get_name($candidate, $sanitize);
+  }
+
+  $form['ballot_paper']['candidate_id'] = array(
+    '#type' => $form_type,
+    '#title' => t('Candidate'),
+    '#options' => $candidate_options,
+    '#required' => TRUE,
+  );
+
+  if (count($candidate_categories_in_use) > 1) {
+    $form['ballot_paper']['candidate_id']['#process'][] = 'election_fptp_vote_form_add_candidate_categories';
+  }
+
+  // For multiple vacancies use checkboxes or select multiple.
+  if ((int) $post->vacancy_count > 1) {
+    if ($form['ballot_paper']['candidate_id']['#type'] === 'radios') {
+      $form['ballot_paper']['candidate_id']['#type'] = 'checkboxes';
+    }
+    else {
+      $form['ballot_paper']['candidate_id']['#multiple'] = TRUE;
+    }
+  }
+
+  $form['#validate'][] = 'election_fptp_vote_form_validate';
+
+}
+
+/**
+ * Version of form_process_checkboxes() that allows grouping of options.
+ *
+ * Feature request to allow grouping in Drupal core:
+ * https://www.drupal.org/project/drupal/issues/2269823
+ */
+function election_fptp_vote_form_add_candidate_categories($element, &$form_state, $form) {
+  $value = is_array($element['#value']) ? $element['#value'] : array();
+  $element['#tree'] = TRUE;
+  if (count($element['#options']) > 0) {
+    if (!isset($element['#default_value']) || $element['#default_value'] == 0) {
+      $element['#default_value'] = array();
+    }
+    $weight = 0;
+
+    $candidates = election_candidate_load_multiple(array_keys($element['#options']));
+
+    // Sort $element['#options'] by candidate_category.
+    uksort($element['#options'], function ($a, $b) use ($candidates) {
+      // @todo Replace with spaceship operator after upgrade to PHP 7.
+      if ($candidates[$a]->candidate_category === $candidates[$b]->candidate_category) {
+        return 0;
+      }
+      return ($candidates[$a]->candidate_category < $candidates[$b]->candidate_category) ? -1 : 1;
+    });
+
+    $unrestricted_votes = election_fptp_get_post_unrestricted_votes($form_state['post']);
+
+    // Count number of candidates in each category.
+    $category_counts = array();
+    foreach (array_keys($element['#options']) as $candidate_id) {
+      $category_id = $candidates[$candidate_id]->candidate_category;
+      $category_counts[$category_id] = isset($category_counts[$category_id]) ? $category_counts[$category_id] : 0;
+      $category_counts[$category_id]++;
+    }
+
+    $last_candidate_category = NULL;
+    foreach ($element['#options'] as $key => $choice) {
+      // Integer 0 is not a valid #return_value, so use '0' instead.
+      // @see form_type_checkbox_value().
+      // @todo For Drupal 8, cast all integer keys to strings for consistency
+      //   with form_process_radios().
+      if ($key === 0) {
+        $key = '0';
+      }
+      // Maintain order of options as defined in #options, in case the element
+      // defines custom option sub-elements, but does not define all option
+      // sub-elements.
+      $weight += 0.001;
+
+      $candidate_category = $candidates[$key]->candidate_category;
+      if ($last_candidate_category !== $candidate_category) {
+        $limit = $form_state['post']->settings['candidate_categories'][$candidate_category]['votes'] + $unrestricted_votes;
+        // Prevent saying the limit is larger than the number of candidates.
+        $limit = ($limit > $category_counts[$candidate_category]) ? $category_counts[$candidate_category] : $limit;
+
+        // If the number of votes required in each category is zero, do not
+        // display the "maximum of" message.
+        $category_header = $form_state['post']->settings['candidate_categories'][$candidate_category]['name'];
+        if ($unrestricted_votes !== (int) $form_state['post']->vacancy_count) {
+          $category_header = t('@category (vote for a maximum of @limit)', array(
+            '@category' => $category_header,
+            '@limit' => $limit,
+          ));
+        }
+
+        $element['header-' . $candidate_category] = array(
+          '#type' => 'item',
+          '#title' => $category_header,
+          '#weight' => $weight,
+        );
+        $last_candidate_category = $candidate_category;
+        $weight += 0.001;
+      }
+
+      $element += array($key => array());
+      $element[$key] += array(
+        '#type' => 'checkbox',
+        '#title' => $choice,
+        '#return_value' => $key,
+        '#default_value' => isset($value[$key]) ? $key : NULL,
+        '#attributes' => $element['#attributes'],
+        '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
+        '#weight' => $weight,
+      );
+    }
+  }
+  return $element;
+}
+
+/**
+ * Validate the voting form.
+ */
+function election_fptp_vote_form_validate($form, &$form_state) {
+  $candidate_votes = array();
+  // Will be array when using checkboxes, which means multiple vacancies.
+  if (is_array($form_state['values']['candidate_id'])) {
+    foreach ($form_state['values']['candidate_id'] as $candidate_id => $vote) {
+      if ($vote) {
+        $candidate_votes[] = $candidate_id;
+      }
+    }
+  }
+  else {
+    if ($form_state['values']['candidate_id']) {
+      $candidate_votes[] = $form_state['values']['candidate_id'];
+    }
+  }
+
+  $votes_cast = count($candidate_votes);
+  $vacancy_count = (int) $form_state['post']->vacancy_count;
+  if ($votes_cast > $vacancy_count) {
+    form_set_error('', t('You may vote for no more than %vacancy_count candidates.', array('%vacancy_count' => $vacancy_count)));
+  }
+
+  // Set error when a category has too many votes.
+  // Make a list of categories that are in use.
+  $candidate_categories_in_use = array();
+  foreach ($form_state['candidates'] as $candidate) {
+    // Ensure candidate_category points to a category that exists. Default is 0
+    // if existing candidate_category does not exist in candidate_categories.
+    $candidate->candidate_category = isset($form_state['post']->settings['candidate_categories'][$candidate->candidate_category]) ? $candidate->candidate_category : 0;
+    $candidate_categories_in_use[$candidate->candidate_category] = isset($form_state['post']->settings['candidate_categories']) ? $form_state['post']->settings['candidate_categories'][$candidate->candidate_category]['votes'] : NULL;
+  }
+  // Only check if more than one category is in use.
+  if (count($candidate_categories_in_use) > 1) {
+    // Tally how many votes cast in each category.
+    $votes_cast_in_each_category = array();
+    foreach ($candidate_votes as $vote) {
+      $key = $form_state['candidates'][$vote]->candidate_category;
+      // Ensure value exists.
+      $votes_cast_in_each_category += array($key => 0);
+      // Record vote.
+      $votes_cast_in_each_category[$key]++;
+    }
+
+    $unrestricted_votes = election_fptp_get_post_unrestricted_votes($form_state['post']);
+
+    // Set errors for any category with too many votes.
+    foreach ($votes_cast_in_each_category as $category => $votes_cast_in_category) {
+      $vacancy_count_in_category = $candidate_categories_in_use[$category] + $unrestricted_votes;
+      if ($votes_cast_in_category > $vacancy_count_in_category) {
+        form_set_error('', t('You may vote for no more than %vacancy_count candidates in category %category.', array('%vacancy_count' => $vacancy_count_in_category, '%category' => $form_state['post']->settings['candidate_categories'][$category]['name'])));
+      }
+    }
+  }
+
+  // Add 'candidate_id' to $form_state (so it's available when
+  // confirming/saving votes).
+  $form_state['candidate_votes'] = $candidate_votes;
+}
+
+/**
+ * Return the number of unrestricted votes for a post.
+ *
+ * Unrestricted votes are those that remain once the votes allocated to a
+ * category have been taken out of vacancy_count.
+ *
+ * @param object $post
+ *   The election post object.
+ *
+ * @return int
+ *   The number of unrestricted votes.
+ */
+function election_fptp_get_post_unrestricted_votes(stdClass $post) {
+  $unrestricted_votes = (int) ($post->vacancy_count - array_sum(array_column($post->settings['candidate_categories'], 'votes')));
+  if ($unrestricted_votes < 0) {
+    throw new Exception('The number of votes restricted to a category cannot exceed the vacancy count.');
+  }
+  return $unrestricted_votes;
+}
+
+/**
+ * Preprocess function for the voting confirmation page.
+ */
+function election_fptp_preprocess_election_vote_confirm(&$variables) {
+
+  $form_state = $variables['form_state'];
+  $election = $form_state['election'];
+
+  if ($election->type == 'fptp') {
+    foreach ($form_state['candidate_votes'] as $candidate_id) {
+      $voted_for[$candidate_id] = election_candidate_get_name($form_state['candidates'][$candidate_id]);
+    }
+
+    $variables['confirm']['candidate'] = array(
+      '#theme' => 'item_list',
+      '#title' => format_plural(count($voted_for), 'Your chosen candidate:', 'Your chosen candidates:'),
+      '#type' => 'ul',
+      '#items' => $voted_for,
+    );
+  }
+
+}
+
+/**
+ * Implements hook_election_vote_ELECTION_TYPE_save().
+ *
+ * Save votes for an FPTP election.
+ */
+function election_fptp_election_vote_fptp_save($ballot_id, stdClass $post, $vote_form, $vote_form_state) {
+
+  $vote_entry = array(
+    'ballot_id' => $ballot_id,
+    'election_id' => $post->election_id,
+    'post_id' => $post->post_id,
+    'candidate_id' => NULL,
+  );
+
+  $query = db_insert('election_vote')
+    ->fields(array_keys($vote_entry));
+  foreach ($vote_form_state['candidate_votes'] as $cid) {
+    $vote_entry['candidate_id'] = $cid;
+    $query->values($vote_entry);
+  }
+  $query->execute();
+
+  // If the insert fails, the database driver will throw an exception.
+  return TRUE;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Add FPTP-specific settings to the election post edit form.
+ */
+function election_fptp_form_election_post_form_alter(&$form, &$form_state) {
+  $post = $form_state['post'];
+
+  $election = $form_state['election'];
+  if ($election->type != 'fptp') {
+    return;
+  }
+
+  $form['voting']['settings_vote_form_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Ballot form type'),
+    '#options' => array(
+      'default' => t('Default'),
+      'radios' => t('Radio buttons'),
+      'select' => t('Drop-down select options'),
+    ),
+    '#default_value' => isset($post->settings['vote_form_type']) ? $post->settings['vote_form_type'] : 'default',
+    '#description' => t('Default: radio buttons if there are 2-10 candidates; drop-down select options otherwise.'),
+  );
+
+  if (isset($post->settings['candidate_categories'])) {
+    // Convert candidate_categories from array to string for editing.
+    $candidate_categories = array();
+    foreach ($post->settings['candidate_categories'] as $category) {
+      $candidate_categories[] = $category['name'] . '|' . $category['votes'];
+    }
+    $candidate_categories = implode("\n", $candidate_categories);
+  }
+  else {
+    $candidate_categories = NULL;
+  }
+  $form['voting']['settings_candidate_categories'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Candidate categories'),
+    '#default_value' => $candidate_categories,
+    '#description' => t('Each line needs to contain the name of the category, a pipe character, and the number of votes required in that category, for example: <code>Category Name|2</code>'),
+    '#element_validate' => array('election_fptp_form_election_post_form_validate_candidate_categories'),
+  );
+}
+
+/**
+ * Form #element_validate callback.
+ *
+ * Parses candidate_categories so they are saved as an array.
+ */
+function election_fptp_form_election_post_form_validate_candidate_categories($element, &$form_state, $form) {
+  $candidate_categories = trim($element['#value']);
+  $candidate_categories = explode("\n", $candidate_categories);
+  $candidate_categories = array_map('trim', $candidate_categories);
+  $candidate_categories = array_map('check_plain', $candidate_categories);
+  $candidate_categories = array_filter($candidate_categories);
+  foreach ($candidate_categories as &$category) {
+    if (preg_match('/^([\w ]+)\|(\d+)$/', $category, $backref)) {
+      $category = array('name' => $backref[1], 'votes' => (int) $backref[2]);
+    }
+    else {
+      form_set_error(implode('][', $element['#parents']), t('Invalid candidate category: %category', array('%category' => $category)));
+      return;
+    }
+  }
+
+  $test_post = (object) array(
+    'vacancy_count' => $form_state['values']['vacancy_count'],
+    'settings' => array('candidate_categories' => $candidate_categories),
+  );
+  try {
+    election_fptp_get_post_unrestricted_votes($test_post);
+  }
+  catch (Exception $e) {
+    form_set_error(implode('][', $element['#parents']), $e->getMessage());
+  }
+
+  form_set_value($element, $candidate_categories, $form_state);
+}
+
+/**
+ * Count candidates's votes.
+ *
+ * @param object $post
+ *   The election post entity.
+ *
+ * @return array
+ *   An associative array where the keys are candidate IDs and the values are
+ *   the number of votes each candidate has received.
+ */
+function election_fptp_get_candidates_votes(stdClass $post) {
+  $query = db_select('election_candidate', 'ec')
+    ->condition('ec.post_id', $post->post_id)
+    ->condition('ec.cstatus', ELECTION_CANDIDATE_HOPEFUL, '>=')
+    ->fields('ec', array('candidate_id'));
+  $query->leftJoin('election_vote', 'ev', 'ev.candidate_id = ec.candidate_id');
+  // If anonymize not set, undo is possible, so we need to discard votes with
+  // value of zero.
+  if (empty($post->election->settings['anonymize'])) {
+    $query->leftJoin('election_ballot', 'eb', 'eb.ballot_id = ev.ballot_id');
+    $query->addExpression('SUM(eb.value)', 'votes');
+    $query->orderBy('SUM(eb.value)', 'DESC');
+  }
+  else {
+    // Column ev.candidate_id will be NULL in leftJoin if there are no votes for
+    // this candidate.
+    $query->addExpression('COUNT(ev.candidate_id)', 'votes');
+    $query->orderBy('COUNT(ev.candidate_id)', 'DESC');
+  }
+
+  $query->groupBy('ec.candidate_id');
+  return $query->execute()->fetchAllKeyed();
+}
+
+/**
+ * Alter the results page to display vote counts.
+ */
+function election_fptp_election_results_page_alter(&$output, stdClass $post) {
+
+  $election = $post->election;
+
+  if ($election->type != 'fptp') {
+    return;
+  }
+
+  // Count the candidates' votes.
+  $candidates_votes = election_fptp_get_candidates_votes($post);
+  $total_votes = array_sum($candidates_votes);
+
+  $candidates = election_candidate_load_multiple(array_keys($candidates_votes));
+
+  $rows = array();
+  foreach ($candidates_votes as $candidate_id => $votes) {
+    $candidate = $candidates[$candidate_id];
+    $row = array();
+
+    // Anyone able to view these results ought to be able to view the candidates
+    // if they are published.
+    if ($candidate->published || election_candidate_access('view', $candidate)) {
+      $row[] = l(election_candidate_get_name($candidate, FALSE), 'election-candidate/' . $candidate_id);
+    }
+    else {
+      $row[] = t('Unpublished candidate');
+    }
+
+    // Display the number of votes.
+    $row[] = number_format($votes);
+
+    // Display the proportion of votes.
+    if ($votes == 0) {
+      $row[] = '0%';
+    }
+    else {
+      $proportion = $total_votes ? $votes / $total_votes : 0;
+      $row[] = number_format($proportion * 100, 2) . '%';
+    }
+
+    $rows[] = $row;
+  }
+
+  $output['count'] = array(
+    '#theme' => 'table',
+    '#header' => array(t('Candidate'), t('Votes'), t('Proportion')),
+    '#rows' => $rows,
+  );
+
+}

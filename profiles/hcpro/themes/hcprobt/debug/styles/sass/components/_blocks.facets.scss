@@ -1,0 +1,26 @@
+.block--facetapi {
+  ul {
+    margin: 0;
+    padding: 0;
+
+    li {
+      list-style: none;
+
+      &.active {
+        a {
+          padding-left: 10px;
+        }
+      }
+
+      ul {
+        li {
+          &.inactive {
+            a {
+              padding-left: 40px;
+            }
+          }
+        }
+      }
+    }
+  }
+}

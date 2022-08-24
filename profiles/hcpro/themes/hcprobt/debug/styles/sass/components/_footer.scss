@@ -1,0 +1,15 @@
+.l-footer {
+  background-color: $footerBG;
+  color: #ffffff;
+
+  .l-site-width {
+    padding: $gutterSize;
+
+    .hcpro-logo {
+      margin: 0 0 10px;
+    }
+
+    .copyright {
+    }
+  }
+}

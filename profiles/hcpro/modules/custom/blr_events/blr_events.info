@@ -1,0 +1,6 @@
+name = BLR Events
+description = "Simple JSON importer for BLR event feeds"
+package = Custom
+version = "1.0"
+core = 7.x
+files[] = blr_events.module

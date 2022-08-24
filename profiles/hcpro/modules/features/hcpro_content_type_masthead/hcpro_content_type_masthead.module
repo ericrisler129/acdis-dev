@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the hcpro_content_type_masthead feature.
+ */
+
+include_once 'hcpro_content_type_masthead.features.inc';

@@ -1,0 +1,55 @@
+.node {
+  .field-name-title {
+    h1 {
+      font-size: $FSextraLarge;
+    }
+  }
+
+  .group-details {
+    font-size: $FSsmall;
+    color: $brand1;
+
+    .field {
+      border: none;
+      padding: 0;
+      margin: 0;
+
+      &:after {
+        content: "–";
+        padding: 0 5px;
+      }
+
+      &:last-child {
+        &:after {
+          display: none;
+        }
+      }
+    }
+  }
+
+  .label-inline {
+    display: inline;
+    font-weight: $primaryFontWeightMed;
+  }
+
+  &.node--page {
+    .field-name-body {
+      h2,
+      h3 {
+        color: $brand1;
+        margin: 0 0 10px;
+      }
+    }
+  }
+
+  figure {
+    margin: 1.5em;
+
+    figcaption {
+      font-size: $FSextraSmall;
+      font-style: italic;
+      text-align: center;
+      color: #c0c0c0;
+    }
+  }
+}

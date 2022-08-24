@@ -1,0 +1,166 @@
+<?php
+
+function umd_menu() {
+
+  $items = array();
+
+  $items['admin/settings/umd'] = array(
+    'title' => 'UMD settings',
+    'description' => 'Manage UMD settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('umd_admin'),
+    'access arguments' => array('administer umd settings'),
+    'type' => MENU_CALLBACK,
+   );
+  return $items;
+}
+
+function umd_permission() {
+  return [
+     'administer umd settings' => [
+        'title' => 'Administer UMD settings'
+     ]
+  ];
+}
+
+function umd_node_view($node, $view_mode, $langcode) {
+	 global $umd_node;
+
+	 if($view_mode == 'full')
+	   $umd_node = $node;
+}
+
+function umd_prepare_user($account = null) {
+	 global $user;
+	 $account = $account ?: $user;
+	 $info = [
+	     'username'=>$user->name,
+	     'email'=>$user->mail	     
+	   ];
+
+	 drupal_alter('umd_user',$info,$account);
+	 return $info;	 
+}
+
+function umd_user_login(&$edit, $account) {
+	 umd_push_event(['type'=>'user_login','user'=>umd_prepare_user($account)]);
+}
+
+function umd_user_logout($account) {
+	 umd_push_event(['type'=>'user_logout','user'=>umd_prepare_user($account)]);
+}
+
+function umd_views_pre_view(&$view, &$display_id, &$args) {
+
+}
+
+function &umd_get_package($clear = false) {
+   static $umd_package = null;
+   if($clear) 
+     $_SESSION['_umd_package'] = $umd_package = [];
+   else if($umd_package === null)
+     $umd_package = isset($_SESSION['_umd_package']) ? $_SESSION['_umd_package'] : [];
+   return $umd_package;
+}
+
+function umd_exit() {
+    $_SESSION['_umd_package'] = umd_get_package();
+}
+
+function umd_send_package() {	 
+	 $package = &umd_get_package();
+	 if(empty($package))
+	   return;         
+	 global $user;
+	 if($user->uid) $package['user'] = umd_prepare_user();
+	 $plaintext = json_encode($package);
+	 $master_key = variable_get('umd_key');
+	 $id = bin2hex(openssl_random_pseudo_bytes(8));
+	 $key = md5($master_key . $id);
+	 $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
+  	 $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
+	 $ciphertext = $iv . mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key,
+                                 $plaintext, MCRYPT_MODE_CBC, $iv);
+	 $ciphertext = base64_encode($ciphertext);
+	 umd_get_package(true);
+	 return array($id,$ciphertext);
+}
+
+function umd_push_event($event) {
+	 if(!isset($event['url']))
+	   $event['url'] = 'http' . (isset($_SERVER['HTTPS']) ? 's' : '') . '://' . "{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
+	 if(!isset($event['timestamp']))
+	   $event['timestamp'] = date('Y-m-d H:i:s');
+	 $package = &umd_get_package();
+	 $package['events'][] = $event;
+}
+
+function umd_page_build(&$page) {
+	 global $umd_node;
+
+	 if(!variable_get('umd_host'))
+	    return;
+
+     	 $event = ['type' => 'page_view'];
+
+	 if($node = $umd_node) {
+	     $wrapper = entity_metadata_wrapper('node', $node);
+	     $event['doc_type'] = $node->type;
+	     foreach(field_info_instances('node',$node->type) as $name=>$field)
+	       if($field['label'] == 'Category' && isset($wrapper->$name->value()[0]))
+	         $event['category'] = $wrapper->$name->value()[0]->name; 
+	 }
+
+   	umd_push_event($event);
+
+	$sections = ['page_bottom','bottom'];
+	foreach($sections as $section) {
+	   if(isset($page[$section])) {
+	     $commands = [];	     
+	     if($package = umd_send_package())
+	      $commands[] = ['sendPackage',$package];	      
+	     ob_start();
+	     include 'umd.js.php';
+	     $markup = ob_get_clean();
+	     $page[$section]['umd'] = [
+	       '#markup' => $markup,
+	       '#weight' => 25
+	     ];
+	   }
+	}		  
+}
+
+// ADMIN
+
+function umd_admin() {
+    $form = array();
+
+    $form['umd_host'] = array(
+      '#type' => 'textfield',
+      '#title' => t('UMD Host'),
+      '#default_value' => variable_get('umd_host'),
+      '#size' => 64,
+      '#maxlength' => 64,
+      '#required' => TRUE,
+    );
+
+    $form['umd_site'] = array(
+      '#type' => 'textfield',
+      '#title' => t('UMD Site'),
+      '#default_value' => variable_get('umd_site'),
+      '#size' => 4,
+      '#maxlength' => 4,
+      '#required' => TRUE,
+    );
+
+    $form['umd_key'] = array(
+      '#type' => 'textfield',
+      '#title' => t('UMD Signing Key'),
+      '#default_value' => variable_get('umd_key'),
+      '#size' => 80,
+      '#maxlength' => 64,
+      '#required' => TRUE,
+    );
+
+  return system_settings_form($form);
+}

@@ -1,0 +1,121 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ *
+ * @return array
+ */
+function blr_flood_whitelist_menu() {
+  $items = array();
+
+  $items['admin/config/people/flood-whitelist'] = array(
+    'title' => 'Flood IP Whitelist',
+    'description' => 'Enter IP addresses that will bypass flood control lockouts',
+    'page callback' => 'blr_flood_whitelist_page',
+    'access arguments' => array('administer users'),
+    'file' => 'blr_flood_whitelist.admin.inc',
+  );
+  $items['admin/config/people/flood-whitelist/delete/%'] = array(
+    'title' => 'Delete IP range',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_blr_flood_whitelist_delete', 5),
+    'access arguments' => array('administer users'),
+    'file' => 'blr_flood_whitelist.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * @param $form
+ * @param $form_state
+ * @param $form_id
+ */
+function blr_flood_whitelist_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
+    case 'user_login_block':
+    case 'user_login':
+      blr_flood_whitelist_clear_ip_check();
+      break;
+  }
+}
+
+/**
+ * Clear flood entries if current user IP is in the whitelist table
+ */
+function blr_flood_whitelist_clear_ip_check() {
+  $whitelist = blr_flood_whitelist_get_ip_list();
+  $current_ip = ip_address();
+  foreach ($whitelist as $ip) {
+    if (blr_flood_whitelist_check_ip($ip->ip, $current_ip)) {
+      blr_flood_whitelist_clear_ips();
+      break;
+    }
+  }
+}
+
+/**
+ * Clear current user events from flood table
+ */
+function blr_flood_whitelist_clear_ips() {
+  blr_flood_whitelist_clear_event('failed_login_attempt_ip');
+  blr_flood_whitelist_clear_event('failed_login_attempt_user');
+}
+
+/**
+ * Check if user IP is in the whitelist table
+ *
+ * @param $ip
+ * @param $current_ip
+ * @return bool
+ */
+function blr_flood_whitelist_check_ip($ip, $current_ip) {
+  $type = strpos($ip, '-') ? 'range' : 'single';
+  return ($type == 'single') ? $ip == $current_ip : ip_ranges_check_range($ip, $current_ip);
+}
+
+/**
+ * Compare IP to range of IPs
+ *
+ * @param $ip
+ * @param $current_ip
+ * @return bool
+ */
+function blr_flood_whitelist_check_range($ip, $current_ip) {
+  $ip = explode('-', $ip);
+  list($lower, $upper) = $ip;
+  $lower_dec = (float) sprintf("%u", ip2long($lower));
+  $upper_dec = (float) sprintf("%u", ip2long($upper));
+  $ip_dec = (float) sprintf("%u", ip2long($current_ip));
+  return (($ip_dec >= $lower_dec) && ($ip_dec <= $upper_dec));
+}
+
+/**
+ * Get list of entries from the whitelist table
+ *
+ * @return mixed
+ */
+function blr_flood_whitelist_get_ip_list() {
+  $query = db_select('flood_ip_whitelist', 'list');
+  $query->fields('list');
+
+  return $query->execute()->fetchAll();
+}
+
+/**
+ * Clear an event from the flood table
+ *
+ * @param $name
+ * @param null $identifier
+ */
+function blr_flood_whitelist_clear_event($name, $identifier = NULL) {
+  if (!isset($identifier)) {
+    $identifier = ip_address();
+  }
+  db_delete('flood')
+    ->condition('event', $name)
+    ->condition('identifier', '%' . db_like($identifier), 'LIKE')
+    ->execute();
+}

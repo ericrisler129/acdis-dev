@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the hcpro_ds_view_modes feature.
+ */
+
+include_once 'hcpro_ds_view_modes.features.inc';

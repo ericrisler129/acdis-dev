@@ -1,0 +1,566 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function blr_issue_browser_menu() {
+  $items = array();
+
+  $items['admin/config/user-interface/blr-issue-browser'] = array(
+    'title' => 'BLR Issue Browser',
+    'description' => 'Issue browser configuration',
+    'page callback' => '_blr_issue_browser_settings',
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/config/user-interface/blr-issue-browser/edit/%'] = array(
+    'title' => t('Edit Publication'),
+    'page callback' => '_blr_issue_browser_settings',
+    'page arguments' => array(5),
+    'access arguments' => array('administer users'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/config/user-interface/blr-issue-browser/delete/%'] = array(
+    'title' => t('Delete Publication'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_publication_delete_confirm', 5),
+    'access arguments' => array('administer users'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * @return array
+ */
+function _blr_issue_browser_settings($publication = null) {
+  $form = drupal_get_form('blr_issue_browser_form', $publication);
+
+  $content = array(
+    'table' => array(
+      '#theme' => 'table',
+      '#header' => array(
+        'id' => t("ID"),
+        'publication' => t("Publication"),
+        'starting_year' => t("Starting Year"),
+        'starting_volume' => t("Starting Volume"),
+        'publication_frequency' => t("Frequency"),
+        'allowed_roles' => t('Role Access'),
+        'edit' => t("Edit"),
+        'delete' => t("Delete"),
+      ),
+      '#rows' => array(),
+      '#attributes' => array(),
+      '#caption' => t("Existing publications"),
+      '#colgroups' => array(),
+      '#sticky' => FALSE,
+      '#empty' => t("There are no existing publications."),
+    ),
+    'form' => $form,
+  );
+
+  $roles = user_roles();
+  $result = db_query("SELECT * FROM {blr_issue_browser} ORDER BY id ASC");
+  if ($result) {
+    while ($row = $result->fetchAssoc()) {
+      $content['table']['#rows'][] = array(
+        $row['id'],
+        $row['publication'] . " ({$row['publication_machine_name']})",
+        $row['starting_year'],
+        $row['starting_volume'],
+        $row['publication_frequency'],
+        implode(", ", array_intersect_key($roles, array_diff(unserialize($row['allowed_roles']), array("0")))),
+        "<a href='/admin/config/user-interface/blr-issue-browser/edit/{$row['id']}'>Edit</a>",
+        "<a href='/admin/config/user-interface/blr-issue-browser/delete/{$row['id']}'>Delete</a>",
+      );
+    }
+  }
+
+  return $content;
+}
+
+/**
+ * @param $node
+ * @param $form_state
+ * @return mixed
+ *
+ * Administration form
+ */
+function blr_issue_browser_form($node, &$form_state) {
+  $publication_id = isset($form_state['build_info']['args'][0]) ? $form_state['build_info']['args'][0] : null;
+
+  if ($publication_id) {
+    $loaded_publication = get_publication_entry($publication_id);
+    $existing_roles = get_publication_access_roles($publication_id);
+  }
+
+  $form['blr_issue_browser_publication']['publication_name'] = array(
+    '#type' => 'textfield',
+    '#default_value' => isset($loaded_publication) ? $loaded_publication['publication'] : '',
+    '#title' => t('Publication Name'),
+    '#required' => TRUE,
+  );
+
+  $form['blr_issue_browser_publication']['starting_year'] = array(
+    '#type' => 'textfield',
+    '#default_value' => isset($loaded_publication) ? $loaded_publication['starting_year'] : '',
+    '#title' => t('Starting Year'),
+    '#required' => TRUE,
+    '#description' => t("The starting year of the publication"),
+  );
+
+  $form['blr_issue_browser_publication']['starting_volume'] = array(
+    '#type' => 'textfield',
+    '#default_value' => isset($loaded_publication) ? $loaded_publication['starting_volume'] : '',
+    '#title' => t('Starting Volume'),
+    '#required' => TRUE,
+    '#description' => t("The starting volume of the publication"),
+  );
+
+  $form['blr_issue_browser_publication']['publication_frequency'] = array(
+    '#type' => 'select',
+    '#options' => array(
+      'monthly' => 'Monthly',
+      'odd_months' => 'Odd Months',
+      'even_months' => 'Even Months',
+      'quarterly' => 'Quarterly',
+      'biweekly' => 'Biweekly',
+      'use_date' => 'Use the Date',
+    ),
+    '#default_value' => isset($loaded_publication) ? $loaded_publication['publication_frequency'] : '',
+    '#title' => t('Publication Frequency'),
+    '#required' => TRUE,
+    '#description' => t("The frequency this publication is released"),
+  );
+
+  $form['blr_issue_browser_publication']['allowed_roles'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Grant Access'),
+    '#description' => t('Grant publication access to the selected roles.'),
+    '#options' => array_diff(user_roles(), array('authenticated user', 'administrator')),
+    '#default_value' => isset($existing_roles) ? $existing_roles['allowed_roles'] : array(),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => isset($publication_id) ? t('Update Publication') : t('Add new publication'),
+  );
+
+  return $form;
+}
+
+/**
+ * @param $form
+ * @param $form_state
+ */
+function blr_issue_browser_form_validate($form, &$form_state) {
+  $publication = $form_state['values']['publication_name'];
+  $starting_year = $form_state['values']['starting_year'];
+  $starting_volume = $form_state['values']['starting_volume'];
+
+  if (empty($publication)) {
+    form_set_error('publication_name', 'You must enter a publication name');
+  }
+
+  if (empty($starting_year)) {
+    form_set_error('starting_year', 'You must enter a starting year');
+  }
+
+  if (empty($starting_volume)) {
+    form_set_error('starting_volume', 'You must enter a starting volume');
+  }
+}
+
+/**
+ * @param $form
+ * @param $form_state
+ */
+function blr_issue_browser_form_submit($form, &$form_state) {
+  $publication_id = isset($form_state['build_info']['args'][0]) ? $form_state['build_info']['args'][0] : null;
+
+  if ($publication_id) {
+    $update = db_update('blr_issue_browser')
+      ->fields(array(
+        'publication' => $form_state['values']['publication_name'],
+        'starting_year' => $form_state['values']['starting_year'],
+        'starting_volume' => $form_state['values']['starting_volume'],
+        'publication_frequency' => $form_state['values']['publication_frequency'],
+        'allowed_roles' => serialize($form_state['values']['allowed_roles']),
+      ))
+      ->condition('id', $publication_id)
+      ->execute();
+
+    drupal_set_message(t('Publication has been updated'));
+  } else {
+    $insert = db_insert('blr_issue_browser')
+      -> fields(array(
+        'publication_machine_name' => strtolower(str_replace(" ", "_", $form_state['values']['publication_name'])),
+        'publication' => $form_state['values']['publication_name'],
+        'starting_year' => $form_state['values']['starting_year'],
+        'starting_volume' => $form_state['values']['starting_volume'],
+        'publication_frequency' => $form_state['values']['publication_frequency'],
+        'allowed_roles' => serialize($form_state['values']['allowed_roles']),
+      ))
+      ->execute();
+
+    drupal_set_message(t('A new publication has been created.'));
+  }
+
+  $form_state['redirect'] = 'admin/config/user-interface/blr-issue-browser';
+}
+
+/**
+ * @param $form
+ * @param $form_state
+ * @param $publication
+ * @return mixed
+ */
+function _publication_delete_confirm($form, &$form_state, $publication) {
+  $form['_publication'] = array(
+    '#type' => 'value',
+    '#value' => $publication,
+  );
+
+  return confirm_form($form, t('Are you sure you want to delete this publication?'),
+    isset($_GET['destination']) ? $_GET['destination'] : "admin/config/user-interface/blr-issue-browser", t('This action cannot be undone.'),t('Delete'),t('Cancel'));
+}
+
+/**
+ * @param $form
+ * @param $form_state
+ */
+function _publication_delete_confirm_submit($form, &$form_state) {
+  $form_values = $form_state['values'];
+
+  if ($form_state['values']['confirm']) {
+    $publication = $form_state['values']['_publication'];
+
+    $result = db_query("DELETE FROM {blr_issue_browser} where id = '{$publication}'");
+    drupal_set_message(t('Publication ' .$publication.' has been deleted.'));
+  }
+
+  drupal_goto("admin/config/user-interface/blr-issue-browser");
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function blr_issue_browser_block_info() {
+  $blocks = array();
+
+  $blocks['issue_browser'] = array(
+    'info' => t('Issue Browser Navigation'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
+  return $blocks;
+}
+
+
+/**
+ * @param string $delta
+ * @return array
+ */
+function blr_issue_browser_block_view($delta = '') {
+  drupal_add_js(drupal_get_path('module', 'blr_issue_browser') . '/blr_issue_browser.js');
+
+  $content = '';
+
+  switch($delta) {
+    case 'issue_browser':
+      _issue_browser_content($content);
+      break;
+  }
+
+  $block = array(
+    'subject' => 'Issue Browser',
+    'content' => $content,
+  );
+
+  return $block;
+}
+
+/**
+ * @param $variables
+ */
+function blr_issue_browser_preprocess_block(&$variables) {
+  if ($variables['block']->module == 'blr_issue_browser' && $variables['block']->delta == 'issue_browser') {
+    $variables['classes_array'][] = drupal_html_class('blr-issue-browser');
+  }
+}
+
+/**
+ * @param $content
+ * @return string
+ */
+function _issue_browser_content(&$content) {
+  $publication_id = get_publication_id();
+  $volumes = get_volume_years($publication_id);
+
+  if(!empty($volumes)) {
+    $content .= "<ul>";
+
+    foreach($volumes as $volume_key => $volume_year) {
+      $issues = get_issue_months($volume_year, $volume_key, $publication_id);
+      $is_active = get_active_page();
+      $is_active['volume'] == $volume_key ? $volume_class = 'active' : $volume_class = '';
+      $content .= "<li class='menu-volume {$volume_class}'><span class='{$volume_class}'>" . $volume_year . "</span><ul class='menu-issue'>";
+
+      foreach($issues as $issue_key =>$issue) {
+        $is_active['issue'] == $issue_key && !empty($volume_class) ? $issue_class = 'active' : $issue_class = '';
+        $content .= "<li class='{$issue_class}'><a href='/articles/archive?publication={$publication_id}&volume={$volume_key}&issue={$issue_key}' class='{$issue_class}'>" . $issue . "</a>" . "</li>";
+      }
+
+      $content .= "</ul></li>";
+    }
+
+    $content .= "</ul>";
+    return $content;
+  }
+
+  return FALSE;
+}
+
+/**
+ * @param $publication_id
+ * @return array
+ */
+function get_volume_years($publication_id) {
+  if (is_numeric($publication_id)) {
+    $publication = db_query('SELECT starting_year,starting_volume FROM {blr_issue_browser} WHERE id = :publication', array(
+      ':publication' => $publication_id,
+    ))->fetchAssoc();
+
+    $volumes = db_query('SELECT DISTINCT field_publication_volume FROM {field_data_field_publication} WHERE field_publication_publication = :publication', array(
+      ':publication' => $publication_id,
+    ))->fetchCol();
+
+    $volumes = array_values(array_filter($volumes));
+    $volume_years = array();
+    foreach($volumes as $key => $volume) {
+      $volume_years[$publication['starting_volume'] + $key] = $publication['starting_year'] + $key;
+    }
+
+    return array_reverse($volume_years, TRUE);
+  }
+
+  return FALSE;
+}
+
+/**
+ * @param $volume_year Publication year of the volume number
+ * @param $volume Publication volume number
+ * @param $publication_id Primary Key of the database publication record.
+ * @return array Array of months
+ */
+function get_issue_months($volume_year, $volume, $publication_id) {
+  $issue_frequency = array(
+    'monthly' => array(
+      1 => "January",
+      2 => "February",
+      3 => "March",
+      4 => "April",
+      5 => "May",
+      6 => "June",
+      7 => "July",
+      8 => "August",
+      9 => "September",
+      10 => "October",
+      11 => "November",
+      12 => "December",
+    ),
+    'odd_months' => array(
+      1 => "January",
+      2 => "March",
+      3 => "May",
+      4 => "July",
+      5 => "September",
+      6 => "November",
+    ),
+    'even_months' => array(
+      1 => "February",
+      2 => "April",
+      3 => "June",
+      4 => "August",
+      5 => "October",
+      6 => "December",
+    ),
+    'quarterly' => array(
+      1 => "January",
+      2 => "April",
+      3 => "July",
+      4 => "October",
+    ),
+    'biweekly' => array(
+      1 => "January 1",
+      2 => "January 2",
+      3 => "February 1",
+      4 => "February 2",
+      5 => "March 1",
+      6 => "March 2",
+      7 => "April 1",
+      8 => "April 2",
+      9 => "May 1",
+      10 => "May 2",
+      11 => "June 1",
+      12 => "June 2",
+      13 => "July 1",
+      14 => "July 2",
+      15 => "August 1",
+      16 => "August 2",
+      17 => "September 1",
+      18 => "September 2",
+      19 => "October 1",
+      20 => "October 2",
+      21 => "November 1",
+      22 => "November 2",
+      23 => "December 1",
+      24 => "December 2",
+    ),
+  );
+
+  // UGLY HACK HARD-CODED BAD BAD BAD, but no choice :-(
+  if ($volume_year === 2017 && $publication_id === 1 /* HARD-CODED Primary Key id for [NAHRI Journal] */) {
+    $issue_frequency['quarterly'] = array(
+      1 => "July",
+      2 => "October",
+      3 => "January",
+      4 => "April",
+    );
+  }
+
+  $issues = array();
+  $volumes = db_query("SELECT field_publication_issue,entity_id FROM {field_data_field_publication} WHERE field_publication_volume = :volume AND field_publication_publication = :publication_id ORDER BY field_publication_issue ASC", array(
+    ':volume' => $volume,
+    ':publication_id' => $publication_id,
+  ));
+
+  $frequency = db_query("SELECT publication_frequency FROM {blr_issue_browser} WHERE id = :publication", array(
+    ':publication' => $publication_id,
+  ))->fetchField();
+
+  if ($volumes) {
+    while($row = $volumes->fetchAssoc()) {
+      if ($frequency == "use_date") {
+        $issues[$row['field_publication_issue']] = get_issue_date($row['entity_id']);
+      } else {
+        if (isset($issue_frequency[$frequency][$row['field_publication_issue']])) {
+          $issues[$row['field_publication_issue']] = $issue_frequency[$frequency][$row['field_publication_issue']];
+        } else {
+          $issues[$row['field_publication_issue']] = get_issue_date($row['entity_id']);
+        }
+      }
+    }
+  }
+
+  return $issues;
+}
+
+/**
+ * @param $entity_id
+ * @return bool|string
+ */
+function get_issue_date($entity_id) {
+  $date = db_query('SELECT created FROM {node} WHERE nid = :nid', array(
+    ':nid' => $entity_id,
+  ))->fetchField();
+
+  return date('F j', $date);
+}
+
+/**
+ * @return mixed
+ */
+function get_active_page() {
+  isset($_GET['volume']) ? $active_items['volume'] = $_GET['volume'] : $active_items['volume'] = NULL;
+  isset($_GET['issue']) ? $active_items['issue'] = $_GET['issue'] : $active_items['issue'] = NULL;
+
+  return $active_items;
+}
+
+/**
+ * @return string
+ */
+function get_publication_id() {
+  isset($_GET['publication']) ? $publication = $_GET['publication'] : $publication = 'All';
+  return is_numeric($publication)? (int)$publication : $publication;
+}
+
+/**
+ * @param $publication_id
+ * @return mixed
+ */
+function get_publication_name($publication_id) {
+  $publication = db_query("SELECT publication FROM {blr_issue_browser} WHERE id = :publication_id", array(':publication_id' => $publication_id))->fetchField();
+  return $publication;
+}
+
+/**
+ * @param $publication_id
+ * @return array
+ */
+function get_publication_access_roles($publication_id) {
+  $result = db_query('SELECT id,allowed_roles FROM {blr_issue_browser} WHERE id=:id', array(':id' => $publication_id))
+    ->fetchAssoc();
+
+  if ($result) {
+    $result['allowed_roles'] = array_diff(unserialize($result['allowed_roles']), array("0"));
+    return $result;
+  }
+
+  return array();
+}
+
+function get_pdf_download_link($node, $pub = null, $volume = null, $issue = null) {
+  global $user;
+
+  isset($node->field_publication[LANGUAGE_NONE][0]) ? $publication = $node->field_publication[LANGUAGE_NONE][0] : $publication = array('publication' => $pub, 'volume' => $volume, 'issue' => $issue);
+
+  if ($publication) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', 'article')
+      ->fieldCondition('field_publication', 'publication', $publication['publication'], '=')
+      ->fieldCondition('field_publication', 'volume', $publication['volume'], '=')
+      ->fieldCondition('field_publication', 'issue', $publication['issue'], '=')
+      ->fieldCondition('field_publication', 'position', array(null, 0, 1), 'IN');
+    $result = $query->execute();
+
+    if (isset($result['node'])) {
+      $parent_nid = array_keys($result['node']);
+      $file_uri = NULL;
+      $file_url = NULL;
+
+      foreach ($parent_nid as $nid) {
+        $parent_node = node_load($nid);
+
+        if (module_exists('blr_node_access')) {
+          if (!user_can_access_content($user, $parent_node)) {
+            break;
+          }
+        }
+
+        !isset($parent_node->field_file_download['und'][0]['uri']) ?: $file_uri = $parent_node->field_file_download['und'][0]['uri'];
+        !isset($file_uri) ?: $file_url = file_create_url($file_uri);
+      }
+
+      return $file_url;
+    }
+  }
+
+  return FALSE;
+}
+
+function get_publication_entry($publication_id) {
+  $result = db_query('SELECT * FROM {blr_issue_browser} WHERE id=:id', array(':id' => $publication_id))
+    ->fetchAssoc();
+
+  if ($result) {
+    return $result;
+  }
+
+  return FALSE;
+}

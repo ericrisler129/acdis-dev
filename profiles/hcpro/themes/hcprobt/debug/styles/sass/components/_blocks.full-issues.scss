@@ -1,0 +1,54 @@
+.block-full-issues {
+  .block__content {
+    padding: 0 !important;
+  }
+
+  .full-issue-item {
+    padding: $gutterSize;
+    border-bottom: 1px solid #F2F2F2;
+
+    &:hover {
+      @include transition(all 0.3s ease);
+      background-color: #fbfbfb;
+    }
+
+    &:last-child {
+      border: none;
+    }
+
+    a {
+      position: relative;
+      display: block;
+    }
+
+    img {
+      max-width: 30%;
+      vertical-align: middle;
+    }
+
+    .publication {
+      font-size: $FSlarge;
+      font-weight: $primaryFontWeightBold;
+      line-height: 1.2;
+      width: 70%;
+      display: inline-block;
+      vertical-align: middle;
+      padding: 0 $gutterSize;
+      color: #000000;
+    }
+
+    .lock-icon {
+      text-align: center;
+      position: absolute;
+      top: -5px;
+      width: 26%;
+
+      i {
+        @include border-radius(50%);
+        padding: 15% 17%;
+        color: #FFFFFF;
+        background-color: transparentize(#000000, 0.7);
+      }
+    }
+  }
+}

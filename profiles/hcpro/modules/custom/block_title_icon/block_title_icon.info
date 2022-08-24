@@ -1,0 +1,7 @@
+name = Block Title Icon
+description = Adds a field to blocks for font-awesome icon html.
+core = 7.x
+package = Custom
+
+dependencies[] = block
+

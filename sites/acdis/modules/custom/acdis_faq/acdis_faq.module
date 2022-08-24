@@ -1,0 +1,149 @@
+<?php
+
+/**
+ * @file
+ */
+
+/**
+ * Implements hook_block_info().
+ */
+function acdis_faq_block_info() {
+  $blocks = [];
+
+  $blocks['faq_categories'] = [
+    'info' => t('FAQ categories'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+  $blocks['faq_back_link'] = [
+    'info' => t('Back link for FAQ'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  ];
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function acdis_faq_block_view($delta = '') {
+  $content = '';
+  $block = [];
+
+  switch ($delta) {
+    case 'faq_categories':
+      $block = [
+        'subject' => 'FAQ categories',
+        'content' => _acdis_faq_content($content),
+      ];
+      break;
+
+    case 'faq_back_link':
+      $block = [
+        'subject' => 'Back link for FAQ',
+        'content' => _acdis_faq_back_link($content),
+      ];
+      break;
+  }
+
+  return $block;
+}
+
+/**
+ * Implements callback function to display "FAQ categories" block content.
+ *
+ * @param $html
+ *
+ * @return string
+ */
+function _acdis_faq_content(&$html) {
+  $html = '';
+  $vocab = taxonomy_vocabulary_machine_name_load('faq_categories');
+  $category = drupal_get_query_parameters();
+  if (isset($category)) {
+    $category = 'All';
+  }
+  $term = taxonomy_term_load(arg(1));
+  if ($term && $term->vid == $vocab->vid) {
+    $children_items = taxonomy_get_children($term->tid);
+    if (($category == 'All')) {
+      $active = 'active';
+    }
+    else {
+      $active = '';
+    }
+
+    $html .= '<ul>';
+    $html .= '<li class="leaf leaf form-type-bef-link">';
+
+    $html .= '<a class="' . $active . '" href=" ' . url(current_path()) . ' ">All</a>';
+
+    $html .= '</li>';
+    foreach ($children_items as $children_id => $children_item) {
+      if ($category == $children_id) {
+        $active = 'active';
+      }
+      else {
+        $active = '';
+      }
+      $html .= '<li class="leaf form-type-bef-link">';
+      $html .= '<a class="' . $active . '" href=" ' . url(current_path(), ['query' => ['category' => $children_id]]) . ' ">' . $children_item->name . '</a>';
+      $html .= '</li>';
+    }
+    $html .= '</ul>';
+  }
+  else {
+    return FALSE;
+  }
+  return $html;
+}
+
+/**
+ * Implements callback function to display "Back link for FAQ" block content.
+ *
+ * @param $html
+ *
+ * @return bool|string
+ */
+function _acdis_faq_back_link(&$html) {
+  $html = '';
+  $trail = menu_get_active_trail();
+  if (arg(0) == 'faq' && is_numeric(arg(1)) && count($trail) > 1) {
+
+    if (isset($trail)) {
+      $parent_id = menu_link_load($trail[1]['plid']);
+      $link_path = $parent_id['link_path'];
+      $link_title = $parent_id['link_title'];
+
+      $html .= '<div class="group-buttons" style="margin-bottom:10px;"><div class="button">';
+      $html .= '<a href="' . base_path() . $link_path . '" class="button-green">Back to ' . $link_title . ' home</a>';
+      $html .= '</div></div>';
+      return $html;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function acdis_faq_views_api() {
+  return [
+    'api' => 3.0,
+  ];
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function acdis_faq_views_pre_render(&$view) {
+  if ($view->name == 'acdis_faq') {
+    $tid = $view->args[0];
+    $term = taxonomy_term_load($tid);
+    if (!empty($term)) {
+      $view->build_info['title'] = $term->name;
+    }
+    else {
+      $view->build_info['title'] = 'FAQ categories';
+    }
+  }
+}

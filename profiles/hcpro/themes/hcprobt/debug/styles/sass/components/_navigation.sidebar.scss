@@ -1,0 +1,29 @@
+.block-sidebar-nav {
+  position: relative;
+
+  .menu-block-wrapper {
+    padding: $gutterSize 0;
+
+    .menu {
+      padding: 0;
+      margin: 0;
+
+      .leaf {
+        list-style: none;
+
+        a {
+          font-weight: $primaryFontWeightMed;
+          display: block;
+          padding: 3px $gutterSize;
+          color: $copy;
+
+          &.active,
+          &:hover {
+            color: #ffffff;
+            background-color: $headerBG;
+          }
+        }
+      }
+    }
+  }
+}

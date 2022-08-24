@@ -1,0 +1,16 @@
+name = Election Vote
+description = Allows users to vote in elections.
+core = 7.x
+package = Election
+dependencies[] = election
+dependencies[] = election_post
+dependencies[] = rules
+files[] = views/handlers/election_vote_views_handler_field_vote_link.inc
+files[] = views/handlers/election_vote_views_handler_field_eligibility.inc
+files[] = views/handlers/election_vote_views_handler_field_eligibility_boolean.inc
+
+; Information added by Drupal.org packaging script on 2019-08-15
+version = "7.x-1.5"
+core = "7.x"
+project = "election"
+datestamp = "1565892488"

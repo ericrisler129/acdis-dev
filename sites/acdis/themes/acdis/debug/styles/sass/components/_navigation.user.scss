@@ -1,0 +1,45 @@
+.block-user-nav {
+  .menu {
+    li {
+      &.nav-user {
+        &:hover {
+          background-color: $buttonGreen;
+
+          .not-logged-in & {
+            .nav-login {
+              background-color: $buttonGreen;
+            }
+          }
+        }
+
+        .logged-in & {
+          background-color: $buttonGreen;
+
+          &:hover {
+            background-color: #000000;
+          }
+        }
+
+        .menu {
+          .nav-logout {
+            &:hover {
+              background-color: $buttonRed;
+
+              a {
+                color: #ffffff;
+              }
+            }
+          }
+        }
+      }
+
+      &.nav-my-content {
+        background-color: $buttonBlue;
+
+        &:hover {
+          background-color: #000000;
+        }
+      }
+    }
+  }
+}

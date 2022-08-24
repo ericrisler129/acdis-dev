@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * Implements hook_facetapi_widgets()
+ */
+function blr_facets_facetapi_widgets() {
+  return array(
+    'archives' => array(
+      'handler' => array(
+        'label' => t('Archive'),
+        'class' => 'FacetapiWidgetArchive',
+        'query types' => array('term', 'date'),
+      ),
+    ),
+  );
+}
+
+class FacetapiWidgetArchive extends FacetapiWidgetLinks {
+  public function execute() {
+    $element = &$this->build[$this->facet['field alias']];
+
+    $this->setThemeHooks($element);
+    $settings = $this->settings->settings;
+
+    $element = array(
+      '#theme' => 'item_list',
+      '#items' => $this->buildListItems($element),
+      '#prefix' => '<div class="facet-wrapper">',
+      '#suffix' => '</div>',
+    );
+  }
+}

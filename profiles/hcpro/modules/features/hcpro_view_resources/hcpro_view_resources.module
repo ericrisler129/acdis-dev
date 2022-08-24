@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the hcpro_view_resources feature.
+ */
+
+include_once 'hcpro_view_resources.features.inc';

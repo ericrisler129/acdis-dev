@@ -1,0 +1,447 @@
+<?php
+
+//module_load_include('inc', 'memberbase', 'memberbase');
+
+// HOOKS
+
+function memberbase_schema()
+{
+  $schema['memberbase_profile'] = array(
+     'fields' => array(
+       'username' => array( 'type' => 'varchar', 'default' => '', 'length' => 128 ),
+       'memberbase_id' => array( 'type' => 'int', 'unsigned' => true, 'not null' => true ),
+       'first_name' => array( 'type' => 'varchar', 'default' => '', 'length' => 128 ),
+       'last_name' => array( 'type' => 'varchar', 'default' => '', 'length' => 128 ),
+       'email' => array( 'type' => 'varchar', 'default' => '', 'length' => 128 ),
+       'company' => array( 'type' => 'varchar', 'default' => '', 'length' => 128 ),
+       'owner_id' => array( 'type' => 'int', 'unsigned' => true, 'not null' => false )
+     ),
+     'primary key' => array('username'),
+     'unique keys' => array(
+         'memberbase_id' => array('memberbase_id')
+     )
+  );
+  return $schema;
+}
+
+function memberbase_enable()
+{
+  drupal_install_schema('memberbase');
+}
+
+function memberbase_theme() {
+  return [
+    'mbprofile' => [
+      'render element' => 'content',
+      'template' => 'mbprofile',
+      'arguments' => [
+        'user' => false,
+	'subscription' => false
+      ]
+    ]
+  ];
+}
+
+// MENU
+
+function memberbase_menu() {
+
+  $items = array();
+
+  $items['admin/settings/memberbase'] = array(
+    'title' => 'Memberbase integration settings',
+    'description' => 'Manage integration with BLR Memberbase',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('memberbase_admin'),
+    'access arguments' => array('administer memberbase settings'),
+    'type' => MENU_CALLBACK,
+   );
+
+  $items['login_action.cfm'] = array(
+    'title' => 'CRC Login',
+    'description' => 'Automatic login handler',
+    'page callback' => 'memberbase_legacy_login_handler',
+    'access callback' => true,
+    'type' => MENU_CALLBACK,
+  );
+
+
+  $items['edit-profile'] = array(
+    'title' => 'My Account',
+    'description' => 'My Account for memberbase users',
+    'page callback' => 'memberbase_user_profile_page',
+    'access callback' => 'memberbase_can_access_memberbase_profile',
+    'type' => MENU_CALLBACK,
+    'file' => 'memberbase.pages.inc'
+  );
+
+
+  return $items;
+}
+
+function memberbase_permission()
+{
+  return [
+     'administer memberbase settings' => [
+        'title' => 'Administer Memberbase Sttings',
+	'restrict access' => TRUE
+     ]
+  ];
+}
+
+function memberbase_can_access_memberbase_profile() {
+   global $user;
+   if(!$user || !isset($user->uid)) return false;
+   if($user->uid == 1) return true;
+   return memberbase_get_profile($user) != null;
+}
+
+function memberbase_can_access_user_functions() {
+   return memberbase_get_profile() == null;
+}
+
+function memberbase_is_ip_authentication() {
+   global $user;
+   return !isset($_COOKIE['noipauth']) && $user === memberbase_check_ip_authentication($user);
+}
+
+function memberbase_menu_alter(&$items) {
+  $items['user/logout']['access callback'] = 'memberbase_allow_logout';
+
+    foreach(['user','user/password','user/reset/%/%/%','user/%user/edit'] as $menu)
+       chain_menu_access_chain($items, $menu, 'memberbase_can_access_user_functions');
+}
+
+function memberbase_allow_logout() {
+  return user_is_logged_in() && !memberbase_is_ip_authentication();
+}
+
+// SETUP USER AND PROFILE
+
+/**
+ * Get the profile record for the given account, or false if there is none.  Defaults to logged in user.
+ */
+function memberbase_get_profile($account = null) {
+  global $user;
+  $name = ($account && $account->uid) ? $account->name : ($user->uid ? $user->name : false);
+  if(!$name) return false;
+  return db_query('select * from memberbase_profile where username=?',array($name))->fetchObject();
+}
+
+/**
+ * Get the profile record for the given memberbase ID. Call memberbase_setup_user to create the profile if necessary.
+ */
+function memberbase_get_profile_mb($memberbase_id, $auto_load = false) {
+  if($profile = db_query('select * from memberbase_profile where memberbase_id=?',array($memberbase_id))->fetchObject())
+    return $profile;
+  if(!($account = memberbase_setup_user($memberbase_id)))
+    return false;
+  return memberbase_get_profile($account);
+}
+
+/**
+ * Setups a new user and memberbase profile.  Returns the user account or false if not possible.
+ * No account will be created if the membership is not active.
+ */
+function memberbase_setup_user($memberbase_id, $account = null, $xmlUser = null, $password = null)
+{
+     $userinfo = array();
+
+     // Load profile from webservice if not already done
+     if(!$xmlUser) $xmlUser = memberbase_api_load_by_user_id($memberbase_id);
+     if(!$xmlUser) return false;
+
+     $name = (string) $xmlUser->Username;
+     if(!$account) $account = function_exists('user_load_by_name') ? user_load_by_name($name) : user_load(array('user'=>$name));
+
+     // Make sure we have a membership to this site
+     $info = memberbase_get_membership_info($xmlUser);
+     if(!$info) return false;
+
+     if(empty($account)) {
+       $userinfo['name'] = $name;
+       $userinfo['status'] = 1;
+       $userinfo['access'] = time();
+       $userinfo['init'] = (string) $xmlUser->Email;
+       $userinfo['mail'] = (string) $xmlUser->Email;
+     }
+
+     if($password)
+       $userinfo['pass'] = $password;
+
+     // Determine user roles
+     $userinfo['roles'] = $info['roles'];
+
+//  UNCOMMENT to prevent a login from a user with an expired account
+    if(empty($userinfo['roles']))
+       return false;
+
+     // Save user account
+     $account = user_save($account,$userinfo);
+     if(!$account) return false;
+
+     // Setup local memberbase profile
+     $profile = memberbase_get_profile($account);
+
+     if(!$profile) {
+       $newProfile = true;
+       $profile = new stdClass;
+       $profile->username = (string) $xmlUser->Username;
+     } else
+       $newProfile = false;
+
+     $profile->first_name = (string) $xmlUser->FirstName;
+     $profile->last_name = (string) $xmlUser->LastName;
+     $profile->email = (string) $xmlUser->Email;
+     $profile->company = (string) $xmlUser->Company;
+     $profile->memberbase_id = $memberbase_id;
+
+     if($info['ownerId']) {
+        $profile->owner_id = $info['ownerId'];
+
+	// If we have an owner we need to make sure the owner user has also been setup
+	memberbase_get_profile_mb($profile->owner_id,true);
+     }
+
+     if(($newProfile && !drupal_write_record('memberbase_profile',$profile)) ||
+        (!$newProfile && !drupal_write_record('memberbase_profile',$profile,'memberbase_id')))
+	 return false;
+
+    return $account;
+}
+
+/**
+ * Parses the Memberbase user XML record and returns the membership details for this site. Returns false if no membership.
+ */
+function memberbase_get_membership_info($xmlUser) {
+    $application_id = strtolower(variable_get('memberbase_application_id'));
+     $libs = variable_get('memberbase_librairies',array());
+
+    foreach($xmlUser->Memberships->Membership as $membership) {
+        if((string)$membership->ApplicationId == $application_id) {
+	 $mlibs = explode(',',(string) $membership->Libraries); $mlibs = array_combine($mlibs,$mlibs);
+	 $roles = [];
+	 foreach($libs as $role=>$lib_id)
+	   if(isset($mlibs[$lib_id])) $roles[$role] = $role;
+ 	 $active = ((string)$membership->IsActive == 'true');
+	 $compareDate = false;
+         $expireDate = (string)$membership->QuickFillExpiration;
+	 if($expireDate) $expireDate = strtotime($expireDate);
+	 $trialDate = (string)$membership->TrialExpiration;
+	 if($trialDate) $trialDate = strtotime($trialDate);
+	 if(($expireDate || $trialDate) && $expireDate < time() && $trialDate < time())
+	   $active = false;
+	 return ['roles'=>$roles,'active'=>$active,'expireDate'=>$expireDate,'ownerId'=>empty($membership->ParentUserId) ? false : $membership->ParentUserId];
+       }
+    }
+
+    $roles = [];
+    foreach($libs as $role=>$lib_id)
+      if(strtolower($lib_id)=='free') $roles[$role] = $role;
+
+    if(empty($roles))
+       return false;
+
+    return ['roles'=>$roles,'active',true,'expireDate'=>0, 'ownerId' => false];
+}
+
+// LOGIN FORM INTEGRATION
+
+function memberbase_form_user_login_alter( &$form, $form_state )
+{
+   // Insert our authentication handler
+   $form['#validate'] = array_map(function($v) {
+     return $v == 'user_login_authenticate_validate' ? 'memberbase_login_authenticate_validate' : $v;
+   },$form['#validate']);
+}
+
+function memberbase_login_authenticate_validate($form, &$form_state)
+{
+   $name = $form_state['values']['name'];
+   $pass = $form_state['values']['pass'];
+
+   $account = user_load_by_name($name);
+
+   if($xmlUser = memberbase_api_authenticate($name,$pass)) {
+     $account = memberbase_setup_user((string) $xmlUser->UserId,null,$xmlUser,$pass);
+      if(!$account)
+        return false;
+      $form_state['uid'] = $account->uid;
+      return;
+   }
+
+   if(!$account || memberbase_get_profile($account))
+      return;
+
+   return user_login_authenticate_validate($form, $form_state);
+}
+
+// IP authentication and auto login
+
+function memberbase_check_ip_authentication($account = null) {
+   if(!isset($_SERVER['REMOTE_ADDR']))
+      return false;
+
+   $ip = $_SERVER['REMOTE_ADDR'];
+   $authInfo = cache_get('ip.'.$ip);
+   $xmlUser = false;
+
+  try {
+   if($authInfo === false || time() > $authInfo->expire) {
+      $xmlUser = memberbase_api_authenticate_by_ip($ip);
+      cache_set('ip.'.$ip,$xmlUser ? $xmlUser->asXml() : '','cache', time()+600);
+   } else if($authInfo && $authInfo->data)
+      $xmlUser = new SimpleXMLElement($authInfo->data);
+   } catch( Exception $e) { return false; }
+
+   if(!$xmlUser || !isset($xmlUser->UserId) || !($memberbase_id = (string)$xmlUser->UserId))
+     return false;
+
+   if($account && $account->name == (string) $xmlUser->Username)
+     return $account;
+
+   return memberbase_setup_user($memberbase_id,$account,$xmlUser);
+}
+
+function memberbase_init() {
+   global $user;
+
+   if(isset($_GET['noipauth']) && $_GET['noipauth'] == 1)
+      setcookie('noipauth',1);
+   if($user->uid || isset($_COOKIE['noipauth']))
+     return;
+
+   if($account = memberbase_check_ip_authentication()) {
+     $form_state['uid'] = $account->uid;
+     $user = $account;
+     user_login_submit(array(), $form_state);
+   } else
+     memberbase_auto_login();
+}
+
+function memberbase_auto_login($destinationUrl = null) {
+    // Redirect to login page if auto is not present, or if the customer_id is not present
+    if(!isset($_GET['auto']) || $_GET['auto'] != 1 || !isset($_GET['customer_id']))
+       return false;
+
+    // Lookup the user in memberbase based on the customer_id
+    if(!($xmlUser = memberbase_api_load_by_user_id($_GET['customer_id'])))
+      return false;
+
+    // Setup the user in drupal, if necessary
+    $account = memberbase_setup_user($_GET['customer_id'],null,$xmlUser);
+
+    // Redirect to login page if we could not setup user (no membership?)
+    if(!$account)
+      return false;
+
+    $user = $account;
+
+    // Login the user
+    $form_state['uid'] = $account->uid;
+    $_GET['destination'] = url($destinationUrl);
+    $form_state['redirect'] = $destinationUrl;
+    user_login_submit(array(),$form_state);
+
+    return true;
+}
+
+// LEGACY LOGIN HANDLER FOR HCPRO SITES
+
+function memberbase_legacy_login_handler() {
+
+  // Ask other modules where we should send the user
+  $destinationUrl = null;
+
+  foreach (module_implements('memberbase_login_handler') as $module)
+    $destinationUrl = module_invoke($module, 'memberbase_login_handler') ?: $destinationUrl;
+
+  if(!user_is_logged_in() && !memberbase_auto_login($destinationUrl))
+      drupal_goto('user/login',array('query'=>array('destination'=>$destinationUrl)));
+
+  // Redirect user to the destination URL
+  drupal_goto($destinationUrl);
+}
+
+// API CALLS
+
+function memberbase_api_load_by_user_id($user_id) {
+    $url = 'https://webservice.blr.com/Membership/AuthenticationService.svc/pox/AuthenticateByUserId?userId='.urlencode($user_id);
+    $xml = file_get_contents($url);
+    libxml_use_internal_errors(true);
+    $xml = new SimpleXMLElement($xml);
+    $authStatus = (string) $xml->AuthenticationStatus->StatusCode;
+
+    // If user is not found, redirect to login page
+    if($authStatus != 'Success')
+      return false;
+    return $xml->User;
+}
+
+function memberbase_api_authenticate($name,$pass) {
+      $url = 'https://webservice.blr.com/Membership/AuthenticationService.svc/pox/Authenticate?username='.urlencode($name).'&password='.urlencode($pass);
+      $xml = file_get_contents($url);
+      libxml_use_internal_errors(true);
+      $xml = new SimpleXMLElement($xml);
+      $authStatus = (string) $xml->AuthenticationStatus->StatusCode;
+      if($authStatus != 'Success')
+        return false;
+      return $xml->User;
+}
+
+function memberbase_api_authenticate_by_ip($ip) {
+      $url = 'https://webservice.blr.com/Membership/AuthenticationService.svc/pox/AuthenticateWithIpAddress?ipAddress='.urlencode($ip);
+      $xml = file_get_contents($url);
+      $xml = new SimpleXMLElement($xml);
+      $authStatus = (string) $xml->AuthenticationStatus->StatusCode;
+      if($authStatus != 'Success')
+        return false;
+      return $xml->User;
+}
+
+// UMD INTEGRATION
+
+function memberbase_umd_user_alter(&$user,$account)
+{
+    $profile = memberbase_get_profile($account);
+    if($profile) {
+       $user['first_name'] = $profile->first_name;
+       $user['last_name'] = $profile->last_name;
+       $user['company'] = $profile->company;
+       if($profile->owner_id && ($owner = memberbase_get_profile_mb($profile->owner_id)))
+         $user['parent'] = $owner->username;
+    }
+}
+
+// ADMIN
+
+function memberbase_admin() {
+    $form = array();
+
+    $form['memberbase_application_id'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Application ID'),
+      '#default_value' => variable_get('memberbase_application_id'),
+      '#size' => 64,
+      '#maxlength' => 64,
+      '#description' => t("Application ID of this site in Memberbase."),
+      '#required' => TRUE,
+    );
+
+  $form['memberbase_librairies']['#tree'] = true;
+
+  $values =  variable_get("memberbase_librairies",array());
+
+  foreach(user_roles(true) as $id=>$description) {
+    $form["memberbase_librairies"][$id] = array(
+      '#type' => 'textfield',
+      '#title' => t('Library ID: %id',array('%id'=>$description)),
+      '#default_value' => (isset($values[$id]) ? $values[$id] : ''),
+      '#size' => 5,
+      '#maxlength' => 5,
+      '#required' => false,
+    );
+  }
+
+  return system_settings_form($form);
+}

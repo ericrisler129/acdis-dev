@@ -1,0 +1,37 @@
+.view-issue-browser {
+  .view-header {
+    font-weight: $primaryFontWeightBold;
+    text-align: center;
+    text-transform: uppercase;
+    padding: 0 $gutterSize;
+    margin: 0 0 $gutterSize;
+    border: 1px solid #e7e7e7;
+    border-top: 8px solid $navBG;
+  }
+}
+
+.block-issue-browser-search.block-sidebar-menu {
+  .views-widget-filter-field_publication_publication,
+  .views-widget-filter-field_publication_issue,
+  .views-widget-filter-field_publication_volume {
+    display: none;
+  }
+
+  .views-submit-button {
+    text-align: right;
+    padding: 0 15px 15px;
+
+    .form-submit {
+      padding: 5px 15px;
+      margin: 0;
+      border: none;
+      color: #ffffff;
+      background-color: $brand1;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background-color: lighten($brand1, 10);
+      }
+    }
+  }
+}

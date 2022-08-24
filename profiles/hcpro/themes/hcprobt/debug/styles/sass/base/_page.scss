@@ -1,0 +1,126 @@
+body {
+  font-family: $primaryFont;
+  font-size: 87.5%;
+  background-color: $bodyBG;
+  color: $copy;
+}
+
+p {
+  margin: 10px 0;
+}
+
+a {
+  @include transition(all 0.3s ease);
+  text-decoration: none;
+  color: $articleLink;
+
+  &:active,
+  &.active,
+  &:visited,
+  &:focus {
+    color: $articleLink;
+  }
+
+  &:hover {
+    color: lighten($articleLink, 10);
+  }
+}
+
+.l-header {
+  padding: 12px $gutterSize $gutterSize;
+  background-color: $headerBG;
+
+  .site-logo {
+    img {
+      display: block;
+      width: 100%;
+      margin: 8px 0 0;
+    }
+  }
+}
+
+.l-navigation {
+  background-color: $navBG;
+}
+
+.l-section-header {
+  .section-title-wrapper {
+    border: 1px solid $hr;
+    border-bottom: none;
+    background-color: #ffffff;
+
+    .section-subtitle {
+      text-align: center;
+      display: inline-block;
+      vertical-align: middle;
+      width: 50px;
+      border-right: 1px solid $hr;
+      background-color: $brand1;
+
+      .section-icon-inner {
+        i {
+          line-height: 50px;
+          color: #ffffff;
+        }
+      }
+    }
+
+    .section-title {
+      font-weight: $primaryFontWeightBold;
+      text-transform: uppercase;
+      line-height: 50px;
+      padding: 0 20px;
+      display: inline-block;
+      vertical-align: middle;
+      color: $brand1;
+    }
+
+    .section-breadcrumbs {
+      font-weight: $primaryFontWeightMed;
+      line-height: 50px;
+      display: inline-block;
+      vertical-align: middle;
+
+      ul {
+        padding: 0 20px;
+        margin: 0;
+        border-left: 1px solid $hr;
+
+        li {
+          list-style: none;
+          display: inline-block;
+          vertical-align: middle;
+
+          &:not(:last-child):after {
+            content: ">";
+            padding: 0 10px;
+          }
+
+          a {
+            color: $copy;
+          }
+        }
+      }
+    }
+  }
+}
+
+.l-main {
+  background-color: $contentBG;
+  border: 1px solid $hr;
+
+  .main-h1 {
+    font-size: $FSheading;
+    margin: 0;
+    display: inline-block;
+    vertical-align: middle;
+
+    .front & {
+      display: none;
+    }
+  }
+
+  .main-title-wrapper {
+    margin: 0 0 $gutterSize;
+  }
+}

@@ -1,0 +1,7 @@
+name = BLR Countdown Timer
+package = Custom
+core = 7.x
+files[] = blr_countdown.module
+scripts[] = js/jquery.countdown/jquery.countdown.js
+scripts[] = js/countdown.js
+stylesheets[all][] = css/blr_countdown.css

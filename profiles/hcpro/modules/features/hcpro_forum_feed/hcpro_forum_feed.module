@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the HCPro Forum Feed feature.
+ */
+
+include_once 'hcpro_forum_feed.features.inc';

@@ -1,0 +1,13 @@
+<?php
+function wistia_radio_preprocess_page(&$vars, $hook) {
+	// only include the js on add or edit of the radio type
+	if ( 
+		path_is_admin(current_path()) && 
+		( 
+			( drupal_match_path(current_path(), 'node/*/edit') && $vars['node']->type == 'radio' ) || 
+			drupal_match_path(current_path(), 'node/add/radio')
+		)
+	){
+		drupal_add_js(drupal_get_path('module', 'wistia_radio') . '/wistia_radio.js');
+	}
+}

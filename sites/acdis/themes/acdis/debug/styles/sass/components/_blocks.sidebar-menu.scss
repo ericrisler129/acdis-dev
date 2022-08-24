@@ -1,0 +1,120 @@
+.block-sidebar-menu {
+  background-color: $navBG;
+
+  .title-style {
+    font-size: $FSbase;
+    text-align: center;
+    text-transform: uppercase;
+    display: block;
+    padding: 10px;
+    margin: 0;
+    background-color: $brand1;
+    color: #ffffff;
+
+    a,
+    a.active,
+    a:active,
+    a:hover {
+      color: #ffffff;
+    }
+  }
+
+  .link-style {
+    display: block;
+    padding: 10px 15px;
+    color: #ffffff;
+    position: relative;
+
+    &:after {
+      transition: all 0.3s ease;
+      content: ">";
+      color: transparent;
+      position: absolute;
+      right: 10px;
+    }
+
+    &:hover,
+    &:active,
+    &.active {
+      background-color: $brand2;
+
+      &:after {
+        color: #ffffff;
+      }
+    }
+  }
+
+  h2 {
+    @extend .title-style;
+  }
+
+  .views-exposed-widgets {
+    margin: 0;
+
+    .views-exposed-widget {
+      width: 100%;
+      padding: 0;
+
+      .form-item-field-cdi-week-year-target-id > select {
+        width: 100%;
+        background: #333;
+        height: 40px;
+        color: #fff;
+      }
+
+      & > label {
+        @extend .title-style;
+      }
+
+      &.views-widget-filter-title, &.views-widget-filter-combine {
+        .views-widget {
+          padding: 15px;
+        }
+      }
+
+      .form-type-bef-link {
+        a {
+          @extend .link-style;
+        }
+      }
+
+      .form-text {
+        width: 100%;
+      }
+    }
+  }
+
+  .ctools-auto-submit-processed .views-submit-button {
+    display: none;
+  }
+
+  ul,
+  .menu {
+    padding: 0;
+    margin: 0;
+
+    li,
+    .leaf {
+      list-style: none;
+
+      a,
+      span {
+        @extend .link-style;
+        cursor: pointer;
+      }
+
+      ul, .menu {
+        li, .leaf {
+          a {
+            padding-left: 30px;
+          }
+        }
+      }
+    }
+  }
+  
+  #edit-term-node-tid-depth-wrapper .views-widget .bef-select-as-links .form-item:nth-child(n+5):nth-child(-n+10){
+  margin-left: 17px;
+  }
+    
+}

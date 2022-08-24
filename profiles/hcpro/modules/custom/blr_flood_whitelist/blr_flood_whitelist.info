@@ -1,0 +1,5 @@
+name = BLR Flood Whitelist
+description = "IP Whitelist to prevent flood blocks due to incorrect login information"
+package = Custom
+version = "1.0"
+core = 7.x

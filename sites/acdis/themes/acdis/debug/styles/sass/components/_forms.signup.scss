@@ -1,0 +1,26 @@
+.block-sample-signup {
+  form {
+    .form-item {
+      input {
+        width: 100%;
+      }
+
+      &.form-item-Email {
+        max-width: 100%;
+        margin-right: 0;
+      }
+
+      &.form-item-Title {
+        @include breakpoint($tabSmall) {
+          margin-right: 6%;
+          max-width: 47%;
+          float: left;
+        }
+      }
+
+      &.form-item-Address {
+        clear: both;
+      }
+    }
+  }
+}

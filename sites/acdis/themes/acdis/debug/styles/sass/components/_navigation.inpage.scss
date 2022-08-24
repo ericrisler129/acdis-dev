@@ -1,0 +1,27 @@
+.inpage-nav {
+  > ul.menu {
+    @include clearfix;
+    padding: 0;
+
+    li.leaf {
+      list-style: none;
+      float: left;
+
+      a {
+        font-size: $FSdefault;
+        font-weight: $primaryFontWeightMed;
+        display: block;
+        padding: 10px 20px;
+        color: $util-grey;
+        background-color: $brand3;
+        border-left: 3px solid $util-grey;
+
+        &.active,
+        &:hover {
+          border-color: $brand2;
+          color: $copy;
+        }
+      }
+    }
+  }
+}

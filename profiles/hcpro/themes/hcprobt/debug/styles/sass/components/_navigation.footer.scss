@@ -1,0 +1,38 @@
+.block-footer-menu {
+  .menu {
+    @include clearfix;
+    padding: 0;
+    margin: 0;
+
+    .leaf {
+      @include transition(all 0.3s ease);
+      line-height: $FSbase;
+      list-style: none;
+      float: left;
+      margin: 0 0 $gutterSize;
+      border-right: 1px solid #ffffff;
+
+      &.first {
+        a {
+          padding-left: 0;
+        }
+      }
+
+      &:last-child {
+        border: none;
+      }
+
+      a {
+        padding: 0 10px;
+        color: #ffffff;
+
+        &:active,
+        &:hover,
+        &:visited,
+        &.active {
+          color: #ffffff;
+        }
+      }
+    }
+  }
+}

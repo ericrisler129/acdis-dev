@@ -1,0 +1,107 @@
+<?php
+
+/**
+ * Test the Election Vote module for access control by role.
+ */
+class ElectionVoteAccessByRoleTestCase extends ElectionWebTestCase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Election Vote access - by role',
+      'description' => 'Test access control for voting restrictions based on roles.',
+      'group' => 'Election',
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
+    $modules = array(
+      'election_fptp',
+      'election_referendum',
+      'election_stv',
+    );
+    parent::setUp($modules);
+  }
+
+  /**
+   * Test access to vote for posts by role.
+   */
+  public function testVoteRoleAccess() {
+    // Check for two different roles.
+    $iterations = 2;
+    // Create roles with the necessary permissions to vote, and a single user
+    // for each of those roles.
+    $rids = array();
+    $accounts = array();
+    for ($i = 1; $i <= $iterations; $i++) {
+      $role_name = $this->randomName();
+      $rids[$i] = $this->drupalCreateRole(array(
+        'view published elections',
+        'vote in elections',
+      ), $role_name);
+      $accounts[$i] = $this->drupalCreateUser();
+      $edit = array('roles' => array($rids[$i] => $role_name));
+      user_save($accounts[$i], $edit);
+      $this->assertTrue(
+        in_array($role_name, $accounts[$i]->roles),
+        t('User %name granted role %role_name.', array(
+          '%name' => $accounts[$i]->name,
+          '%role_name' => $role_name,
+        ))
+      );
+    }
+    $post_controller = entity_get_controller('election_post');
+    foreach (election_types() as $bundle => $election_type) {
+      // Create a published election with open voting.
+      $election = $this->helperElectionCreate($bundle, TRUE, NULL, NULL, ELECTION_STATUS_OPEN);
+      // Create test posts, each allowing a single role to vote.
+      foreach ($rids as $rid) {
+        $post = $post_controller->create(array(
+          'type' => $election_type['post machine name'],
+          'title' => $this->randomString(),
+          'election_id' => $election->election_id,
+          'rids' => array($rid),
+        ));
+        election_post_save($post);
+        // Reload the post so it gets processed correctly.
+        $post = election_post_load($post->post_id, TRUE);
+        // Add candidates, if relevant, because voting would be closed if there
+        // were not sufficient candidates.
+        if (module_exists('election_candidate') && election_candidate_check_support($election)) {
+          $num_required = isset($post->vacancy_count) ? $post->vacancy_count + 1 : 2;
+          for ($i = 1; $i <= $num_required; $i++) {
+            $candidate = $this->helperElectionCandidateCreate($post, TRUE);
+            $this->assertTrue(!empty($candidate), t('Candidate %name created.', array(
+              '%name' => election_candidate_get_name($candidate, FALSE),
+            )));
+          }
+        }
+        // Check voting access for each user for this post. If a user has the
+        // role assigned to the post, then the user should be allowed to vote,
+        // and vice versa.
+        foreach ($accounts as $account) {
+          $eligible = isset($account->roles[$rid]);
+          $has_access = election_vote_access('vote', $post, $account);
+          $params = array(
+            '%name' => $account->name,
+            '@post' => election_get_post_name($election->type),
+            '%title' => $post->title,
+          );
+
+          if ($eligible) {
+            $this->assertTrue($has_access, t('Eligible user %name has access to vote for @post %title.', $params));
+          }
+          else {
+            $this->assertFalse($has_access, t('Ineligible user %name does not have access to vote for @post %title.', $params));
+          }
+        }
+      }
+    }
+  }
+
+}

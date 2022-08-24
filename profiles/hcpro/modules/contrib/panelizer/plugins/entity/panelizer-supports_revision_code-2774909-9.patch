@@ -1,0 +1,13 @@
+diff --git a/plugins/entity/PanelizerEntityDefault.class.php b/plugins/entity/PanelizerEntityDefault.class.php
+index e6005b8..4295c22 100644
+--- a/plugins/entity/PanelizerEntityDefault.class.php
++++ b/plugins/entity/PanelizerEntityDefault.class.php
+@@ -417,7 +417,7 @@ public function hook_menu(&$items) {
+ 
+       if ($this->supports_revisions) {
+         $rev_base = $base;
+-        $rev_base['load arguments'] = array($position + 2);
++        unset($rev_base['load arguments']);
+         $items[$this->plugin['entity path'] . '/revisions/%panelizer_node_revision/panelizer'] = array(
+           'title' => 'Customize display',
+           // Make sure this is accessible to panelize entities with no defaults.

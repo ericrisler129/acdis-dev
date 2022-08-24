@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the HCPro REST Endpoint feature.
+ */
+
+include_once 'hcpro_rest_endpoint.features.inc';

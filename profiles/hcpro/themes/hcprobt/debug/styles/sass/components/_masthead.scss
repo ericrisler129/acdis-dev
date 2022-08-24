@@ -1,0 +1,42 @@
+.block-masthead {
+  @include flexreset;
+  position: relative;
+
+  .group-overlay {
+    width: 100%;
+    padding: $gutterSize;
+    background-color: transparentize(#ffffff, 0.3);
+
+    img {
+      width: auto;
+    }
+
+    @include breakpoint($mobile) {
+      position: absolute;
+      bottom: 0;
+    }
+
+    .field-name-field-title-fc {
+      font-size: $FSextraLarge;
+      font-weight: $primaryFontWeightBold;
+      line-height: 1.2;
+      margin: 0 0 10px;
+
+      @include breakpoint($tabSmall) {
+        font-size: 1.5em;
+      }
+    }
+
+    .field-name-field-body-fc {
+      display: none;
+
+      @include breakpoint(min-width 900px) {
+        display: block;
+      }
+    }
+
+    .group-buttons {
+      text-align: right;
+    }
+  }
+}

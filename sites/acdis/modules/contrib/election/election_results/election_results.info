@@ -1,0 +1,13 @@
+name = Election Results
+description = Find out the result of an election.
+core = 7.x
+package = Election
+dependencies[] = election
+dependencies[] = election_post
+dependencies[] = election_vote
+
+; Information added by Drupal.org packaging script on 2019-08-15
+version = "7.x-1.5"
+core = "7.x"
+project = "election"
+datestamp = "1565892488"

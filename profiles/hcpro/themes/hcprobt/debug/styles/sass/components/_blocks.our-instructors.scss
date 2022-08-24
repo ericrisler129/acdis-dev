@@ -1,0 +1,62 @@
+.block-network-our-instructors {
+  .block__content {
+    @include clearfix;
+  }
+
+  .column {
+    h3 {
+      font-size: $FSbase;
+      margin: 0 0 10px;
+    }
+
+    p {
+      font-size: $FSsmall;
+    }
+
+    &.column-left {
+      a {
+        font-size: $FSsmall;
+        text-align: right;
+        display: block;
+        color: $nonArticleLink;
+      }
+    }
+
+    @include breakpoint($tabSmall) {
+      float: left;
+
+      &.column-left {
+        width: 40%;
+        padding: 0 $gutterSize 0 0;
+        border-right: 1px solid #999999;
+      }
+
+      &.column-right {
+        @include clearfix;
+        width: 60%;
+        padding: 0 0 0 $gutterSize;
+
+        .staff-profile {
+          float: left;
+          width: 50%;
+
+          .staff-profile-details {
+            @include clearfix;
+
+            img {
+              float: left;
+              width: 25%;
+            }
+
+            p {
+              float: left;
+              width: 75%;
+              padding: 0 10px;
+              margin: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+}

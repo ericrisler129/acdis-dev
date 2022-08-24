@@ -1,0 +1,45 @@
+.view-search {
+  .views-row {
+    border-bottom: 1px solid $hr;
+    padding-bottom: 20px;
+    margin: 0 0 20px;
+
+    .lock-icon {
+      top: 0;
+    }
+
+    h2 {
+      margin: 0;
+    }
+
+    .group-details {
+      span {
+        display: block;
+        margin: 5px 0;
+      }
+    }
+  }
+
+  .views-exposed-form {
+    .views-exposed-widget {
+      padding: 0 10px 0 0;
+
+      .form-type-date-popup {
+        margin: 0;
+
+        label {
+          display: none;
+        }
+
+        input {
+          max-width: 85px;
+          margin: 0;
+        }
+      }
+
+      .form-submit {
+        margin-top: 20px;
+      }
+    }
+  }
+}

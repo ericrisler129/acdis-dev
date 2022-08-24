@@ -1,0 +1,651 @@
+<?php
+
+// HOOKS
+
+function blr_webauth_permission() {
+  return array (
+    'administer blr webauth settings' => array(
+      'title' => t('Administer BLR WebAuth settings'),
+      'description' => t('Perform administration tasks for BLR WebAuth'),
+    ),
+    'blr_webauth_can_access_memberbase_profile' => array(
+      'title' => t('Access Memberbase profiles'),
+      'description' => t('Allow access to view memberbase profiles'),
+    ),
+  );
+}
+
+function blr_webauth_theme() {
+  return array(
+    'mbprofile' => array(
+      'render element' => 'content',
+      'template' => 'mbprofile',
+      'arguments' => array(
+        'user' => false,
+        'profile' => false,
+      ),
+    ),
+  );
+}
+
+// MENU
+
+function blr_webauth_menu() {
+
+  $items = array();
+
+  $items['admin/settings/webauth'] = array(
+    'title' => 'WebAuth integration settings',
+    'description' => 'Manage integration with BLR WebAuth',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('blr_webauth_admin'),
+    'access arguments' => array('administer blr webauth settings'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['edit-profile'] = array(
+    'description' => 'My Account for memberbase users',
+    'page callback' => 'blr_webauth_user_profile_page',
+    'access callback' => 'blr_webauth_can_access_memberbase_profile',
+    'type' => MENU_CALLBACK,
+    'file' => 'blr_webauth.pages.inc'
+  );
+
+  return $items;
+}
+
+function blr_webauth_can_access_memberbase_profile() {
+  if (module_exists('blr_node_access')) {
+    if (user_has_role_name('administrator')) return TRUE;
+  }
+
+  return blr_webauth_get_profile() != null;
+}
+
+function blr_webauth_can_access_user_functions() {
+  //return blr_webauth_get_profile() == null;
+  return user_is_logged_in();
+}
+
+function blr_webauth_is_ip_authentication() {
+  global $user;
+  return !isset($_COOKIE['noipauth']) && $user === blr_webauth_check_ip_authentication($user);
+}
+
+function blr_webauth_menu_alter(&$items) {
+  //$items['user/logout']['access callback'] = 'blr_webauth_allow_logout';
+
+  foreach(['user','user/password','user/reset/%/%/%','user/%user/edit'] as $menu)
+    chain_menu_access_chain($items, $menu, 'blr_webauth_can_access_user_functions');
+}
+
+function blr_webauth_allow_logout() {
+  return user_is_logged_in() && !blr_webauth_is_ip_authentication();
+}
+
+function blr_webauth_user_login(&$edit,$account) {
+  blr_webauth_write_remember_me_cookie($account->name);
+}
+
+function blr_webauth_user_logout() {
+  $_SESSION['webauth'] = false;
+  blr_webauth_erase_remember_me_cookie();
+}
+
+// SETUP USER AND PROFILE
+
+/**
+ * Get the profile for current logged in user.
+ */
+function blr_webauth_get_profile() {
+  return isset($_SESSION['webauth']) ? $_SESSION['webauth'] : false;
+}
+
+/**
+ * Setups a new user and memberbase profile.  Returns the user account or false if not possible.
+ * No account will be created if the membership is not active.
+ */
+function blr_webauth_setup_user(array $xmlUser, $account = null, $password = null)
+{
+  $userinfo = array();
+
+  $name = $xmlUser['username'];
+  if(!$account) $account = function_exists('user_load_by_name') ? user_load_by_name($name) : user_load(array('user'=>$name));
+
+  // Make sure we have a membership to this site
+
+  if(empty($account)) {
+    $userinfo['name'] = $name;
+    $userinfo['status'] = 1;
+    $userinfo['access'] = time();
+    $userinfo['init'] = $userinfo['mail'] = isset($xmlUser['customers'][0]) ? $xmlUser['customers'][0]['email'] : false;
+  }
+
+  if($password)
+    $userinfo['pass'] = $password;
+
+  // Determine user roles
+  $userinfo['roles'] = [];
+
+  $mappings = array_flip(variable_get("webauth_roles",array()));
+
+  foreach(blr_webauth_api_call("users/{$xmlUser['id']}/roles",'GET',['application_codes'=>variable_get('webauth_app')]) as $row) {
+    $role = $row['role_code'];
+    if(isset($mappings[$role]))
+      $userinfo['roles'][$mappings[$role]] = 1;
+  }
+
+//  UNCOMMENT to prevent a login from a user with an expired account
+//    if(empty($userinfo['roles']))
+//       return false;
+
+  // Save user account
+  $account = user_save($account,$userinfo);
+  if(!$account) return false;
+
+  $_SESSION['webauth'] = $xmlUser;
+
+  $customer_id = $_SESSION['webauth']['customers'][0]['id'];
+  $_SESSION['webauth']['profile_address'] = blr_webauth_get_profile_address($customer_id);
+  $_SESSION['webauth']['tags'] = blr_webauth_get_tags($customer_id);
+  $_SESSION['webauth']['profile_image'] = blr_webauth_get_profile_image($_SESSION['webauth']['customers'][0]['profile_asset_id']);
+  $_SESSION['webauth']['memberships'] = blr_webauth_get_memberships($customer_id);
+
+  return $account;
+}
+
+function blr_webauth_create_user($name, $email, $password, $roleID) {
+  /*
+  if (blr_webauth_does_user_exist($name) || blr_webauth_does_email_exist($email)) {
+    return FALSE;
+  }
+  */
+
+  $customer = blr_webauth_api_call("customers", "POST", array("username" => $name, "email" => $email, "password" => $password, "user_mode" => "register"));
+
+  if ($customer) {
+    $assign_role = blr_webauth_api_call("customers/{$customer['id']}/memberships", "POST", array("plan_id" => $roleID, "expiration_date" => '9999-12-31'));
+
+    if ($assign_role) {
+      return TRUE;
+    } else throw new Exception("Unable to assign role $roleID to customer record.");
+  } else throw new Exception("Unable to create new user: $name and email: $email");
+}
+
+function blr_webauth_create_customer($email) {
+  return blr_webauth_api_call("customers", "POST", array("email" => $email, "type" => "I"));
+}
+
+function blr_webauth_does_user_exist($name) {
+  return blr_webauth_api_call("users", "GET", array("username" => $name));
+}
+
+function blr_webauth_does_email_exist($email) {
+  return blr_webauth_api_call("users", "GET", array("expand" => "customers", "filter[email]" => $email));
+}
+
+// Can't use this until /plans can supply unpaginated data
+function blr_webauth_get_plans() {
+  $request = blr_webauth_api_call('plans','GET');
+  $plans = [];
+
+  foreach ($request as $plan) {
+    $plans[$plan['id']] = $plan['name'];
+  }
+
+  return $plans;
+}
+
+function blr_webauth_get_plan_id($plan_name) {
+  $results = blr_webauth_api_call('plans','GET',array('filter[name]' => $plan_name));
+
+  if (isset($results[0]['id'])) {
+    return $results[0]['id'];
+  } else {
+    throw new Exception("Unable to find plan with name: $plan_name");
+  }
+}
+
+/**
+ * Parses the Memberbase user XML record and returns the membership details for this site. Returns false if no membership.
+ */
+function blr_webauth_get_membership_info($xmlUser) {
+  // TODO
+}
+
+// LOGIN FORM INTEGRATION
+
+function blr_webauth_form_user_login_alter( &$form, $form_state )
+{
+  // Insert our authentication handler
+  $form['#validate'] = array_map(function($v) {
+    return $v == 'user_login_authenticate_validate' ? 'blr_webauth_login_authenticate_validate' : $v;
+  },$form['#validate']);
+}
+
+function blr_webauth_login_authenticate_validate($form, &$form_state)
+{
+  $name = $form_state['values']['name'];
+  $pass = $form_state['values']['pass'];
+
+  $account = user_load_by_name($name);
+
+  if(!empty($xmlUser = blr_webauth_api_authenticate($name,$pass)) && !isset($xmlUser['error'])) {
+    $account = blr_webauth_setup_user($xmlUser,$account,$pass);
+    if(!$account)
+      return FALSE;
+    $form_state['uid'] = $account->uid;
+    return;
+  }
+
+  if(!$account || blr_webauth_get_profile($account))
+    return;
+
+  // Allow user to log in if local Drupal credentials match but webauth password is incorrect
+  //user_login_authenticate_validate($form, $form_state);
+}
+
+// IP authentication and auto login
+
+function blr_webauth_get_ip() {
+  $headers = function_exists('apache_request_headers') ? apache_request_headers() : $_SERVER;
+
+  if (array_key_exists( 'X-Forwarded-For', $headers) && filter_var($headers['X-Forwarded-For'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+    $ip = $headers['X-Forwarded-For'];
+  } elseif (array_key_exists( 'HTTP_X_FORWARDED_FOR', $headers) && filter_var($headers['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+    $ip = $headers['HTTP_X_FORWARDED_FOR'];
+  } else {
+    $ip = filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+  }
+
+  return $ip;
+}
+
+function blr_webauth_check_ip_authentication($account = null) {
+  $ip = blr_webauth_get_ip();
+  $authInfo = cache_get('ip.'.$ip);
+  $xmlUser = false;
+
+  try {
+    if($authInfo === false || time() > $authInfo->expire) {
+      $xmlUser = blr_webauth_api_authenticate_by_ip($ip);
+
+      if(empty($xmlUser))
+        return false;
+
+      // Check if user has memberships for this site
+      if (empty(blr_webauth_get_memberships($xmlUser['customers'][0]['id']))) {
+        drupal_goto('/user/login', array('query' => array('noipauth' => 1)));
+      }
+
+      if(!$account) $account = function_exists('user_load_by_name') ? user_load_by_name($xmlUser['name']) : user_load(array('user'=>$xmlUser['name']));
+      cache_set('ip.'.$ip,json_encode($xmlUser),'cache', time()+600);
+    } else if($authInfo && $authInfo->data) {
+      $xmlUser = json_decode($authInfo->data, TRUE);
+      if(!$account) $account = function_exists('user_load_by_name') ? user_load_by_name($xmlUser['username']) : user_load(array('user'=>$xmlUser['username']));
+    }
+  } catch( Exception $e) { return false; }
+
+  if($account)
+    return $account;
+
+  return blr_webauth_setup_user($xmlUser,$account);
+}
+
+/**
+ * Implements hook_boot().
+ */
+function blr_webauth_boot() {
+  $settings = blr_webauth_remember_me_settings();
+
+  if (isset($_COOKIE[$settings['name']])) {
+    drupal_page_is_cacheable(FALSE);
+  }
+
+  if (isset($_GET['autologin'])) {
+    drupal_page_is_cacheable(FALSE);
+  }
+}
+
+function blr_webauth_init() {
+  global $user;
+
+  if(isset($_GET['noipauth']) && $_GET['noipauth'] == 1)
+    setcookie('noipauth',1);
+  if($user->uid || isset($_COOKIE['noipauth']))
+    return;
+
+  if(($account = blr_webauth_check_ip_authentication()) || ($account = blr_webauth_check_remember_me_cookie())) {
+    $form_state['uid'] = $account->uid;
+    $user = $account;
+    user_login_submit(array(), $form_state);
+  } else {
+    blr_webauth_legacy_auto_login();
+  }
+}
+
+function blr_webauth_legacy_auto_login() {
+  $query = drupal_get_query_parameters();
+  $autologin = isset($query['autologin']) ? $query['autologin'] : null;
+
+  if(!isset($autologin))
+    return false;
+
+  // Only allow access to specific legacy accounts
+  if($autologin != "HCAMEMBER" && $autologin != "tenet-subscriber")
+    return false;
+
+  $user = user_load_by_name($autologin);
+  $form_state['uid'] = $user->uid;
+  user_login_submit(array(),$form_state);
+
+  return true;
+}
+
+// API CALLS
+
+function blr_webauth_api_authenticate($name,$pass) {
+  return blr_webauth_api_call('commands/authenticate?expand=customers','GET',
+    array('username'=>$name,'password'=>$pass));
+}
+
+function blr_webauth_api_authenticate_by_ip($ip) {
+  $results = blr_webauth_api_call('users?expand=customers','GET',array('ip'=>$ip));
+  return is_array($results) && !empty($results) ? $results[0] : false;
+}
+
+function blr_webauth_api_call($path, $method = 'GET', $query = []) {
+  $url = strpos($path, "http") === FALSE ? rtrim(variable_get('webauth_url'),'/') . '/' . $path : $path;
+  $remoteIP = '';
+  $auth = new WebauthOAuth();
+  $token = $auth->getToken();
+
+  if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+    $remoteIP = $_SERVER['HTTP_X_FORWARDED_FOR'];
+  } else if (isset($_SERVER['REMOTE_ADDR'])) {
+    $remoteIP = $_SERVER['REMOTE_ADDR'];
+  }
+
+  if (($i = strpos($remoteIP,',')) !== false) {
+    $remoteIP = substr($remoteIP,0,$i);
+  }
+
+  $options = [
+    'method' => $method,
+    'timeout' => 5,
+    'max_redirects' => 0,
+    'headers' => [
+      'Accept' => 'application/json',
+      'Content-Type' => $method == "GET" ? 'application/json' : 'application/x-www-form-urlencoded',
+      'X-APPLICATION' => variable_get('webauth_app'),
+      'X-REMOTE-ADDR' => $remoteIP
+    ]
+  ];
+
+  if($token) {
+    $options['headers']['Authorization'] = 'Bearer ' . $token;
+  }
+
+  if(!empty($query)) {
+    if(is_array($query))
+      $query = http_build_query($query);
+    if($method == 'GET')
+      $url .= (strpos($url,'?') ? '&' : '?') . $query;
+    else
+      $options['data'] = $query;
+  }
+
+  $response = drupal_http_request($url,$options);
+
+  // Handle create customer POST being redirected to non-POST handling endpoint
+  if (!empty($response->redirect_url)) {
+    $options['method'] = "GET";
+    $response = drupal_http_request($response->redirect_url, $options);
+  }
+
+  $data = false;
+
+  if($response->code < 200 || $response->code > 299) {
+    watchdog('webauth', "Webauth call failed with code %code at %method %url",
+      array('%code' => $response->code, '%method' => $method, '%url' => $url),
+      WATCHDOG_ERROR
+    );
+  } else
+    $data = json_decode($response->data,true);
+
+  return $data;
+}
+
+function blr_webauth_get_profile_address($customer_id) {
+  $addresses = blr_webauth_api_call("customers/{$customer_id}/addresses");
+  $profile_address = array();
+
+  if (isset($addresses)) {
+    foreach ($addresses as $address) {
+      if ($address['set_as_profile_address'] === TRUE) {
+        $profile_address = $address;
+      }
+    }
+  }
+
+  return $profile_address;
+}
+
+function blr_webauth_get_tags($customer_id) {
+  $tags = array();
+
+  $tag_request = blr_webauth_api_call("customers/{$customer_id}/tags");
+
+  if (isset($tag_request)) {
+    foreach ($tag_request as $tag) {
+      $tags[] = $tag['tag_name'];
+    }
+  }
+
+  return $tags;
+}
+
+function blr_webauth_get_profile_image($asset_id) {
+  if (isset($asset_id)) {
+    $path = null;
+    $asset = blr_webauth_api_call("asset/{$asset_id}");
+    $url = strpos($path, "http") === FALSE ? rtrim(variable_get('webauth_url'),'/') . '/' . $path : $path;
+
+    if (isset($asset['id'])) {
+      $path = $url . $asset['folder'] . "/u/s/" . $asset['file_name'];
+    }
+
+    return $path;
+  }
+}
+
+function blr_webauth_get_memberships($customer_id) {
+  $memberships = array();
+  $membership_request = blr_webauth_api_call("customers/{$customer_id}/memberships", "GET", array("application[]" => variable_get("webauth_app", "")));
+
+  if (isset($membership_request)) {
+    foreach ($membership_request as $membership) {
+      if ($membership['expiration_date'] > date("Y-m-d")) {
+        $memberships[] = $membership;
+      }
+    }
+  }
+
+  return $memberships;
+}
+
+// UMD INTEGRATION
+
+function blr_webauth_umd_user_alter(&$user,$account)
+{
+  // TODO
+}
+
+// ADMIN
+
+function blr_webauth_admin() {
+  $form = array();
+
+  $form['webauth_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL'),
+    '#default_value' => variable_get('webauth_url'),
+    '#size' => 64,
+    '#maxlength' => 64,
+    '#description' => t("URL of WebAuth service (include username and password)"),
+    '#required' => TRUE,
+  );
+
+  $form['webauth_oauth_client_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('OAuth Client ID'),
+    '#default_value' => variable_get('webauth_oauth_client_id'),
+    '#size' => 64,
+    '#maxlength' => 64,
+    //'#description' => t(""),
+    '#required' => TRUE,
+  );
+
+  $form['webauth_oauth_secret'] = array(
+    '#type' => 'textfield',
+    '#title' => t('OAuth Secret'),
+    '#default_value' => variable_get('webauth_oauth_secret'),
+    '#size' => 64,
+    '#maxlength' => 64,
+    //'#description' => t(""),
+    '#required' => TRUE,
+  );
+
+  $form['webauth_debug'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Debug'),
+    '#default_value' => variable_get('webauth_debug'),
+    '#description' => t("Should all calls be saved to watchdog?"),
+  );
+
+  $form['webauth_app'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Application Code'),
+    '#default_value' => variable_get('webauth_app'),
+    '#size' => 64,
+    '#maxlength' => 64,
+    '#description' => t("Application Code of this site in WebAuth."),
+    '#required' => TRUE,
+  );
+
+  $form['webauth_roles']['#tree'] = true;
+
+  $values =  variable_get("webauth_roles",array());
+
+  foreach(user_roles(true) as $id=>$description) {
+    $form["webauth_roles"][$id] = array(
+      '#type' => 'textfield',
+      '#title' => t('Role Code: %id',array('%id'=>$description)),
+      '#default_value' => (isset($values[$id]) ? $values[$id] : ''),
+      '#size' => 5,
+      '#maxlength' => 6,
+      '#required' => false,
+    );
+  }
+
+  return system_settings_form($form);
+}
+
+function blr_webauth_remember_me_settings() {
+  return [
+    'name' => 'blr_username_remember',
+    'cookie_domain' => '.'.implode('.',array_slice(explode('.',$_SERVER['HTTP_HOST']),-2)),
+    'master_key' => 'FC01636D51D58BE46EB2AC7A571C5A2815B72E710A4E29ADF7D55DCE5C1CE3F8'
+  ];
+}
+
+function blr_webauth_check_remember_me_cookie() {
+  $settings = blr_webauth_remember_me_settings();
+
+  // Check for presence of cookie
+  if(!isset($_COOKIE[$settings['name']])) return;
+
+  $value = $_COOKIE[$settings['name']];
+
+  // Make sure cookie is valid json, has username and expiration and is not expired
+  if(($value = json_decode($value,true)) && isset($value['username']) && isset($value['expiration']) && is_numeric($value['expiration'])
+    && time() < $value['expiration']) {
+
+    $ciphertext = $value['username'];
+
+    // Get the derived encryption key by taking the master key and expiration and md5 the result
+    // Decrypt the package
+    $key = md5($settings['master_key'] . $value['expiration']);
+
+    // Decode the ciphertext
+    $ciphertext = base64_decode($ciphertext);
+
+    // Take the initialization vector from the start of the cipher text
+    $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
+    $iv = substr($ciphertext,0,$iv_size);
+    $ciphertext = substr($ciphertext,$iv_size);
+
+    // Decrypt the cipher text with AES
+    $plaintext = trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $key, $ciphertext, MCRYPT_MODE_CBC, $iv));
+
+    // If we have valid plaintext (i.e. the username), lookup the user by username
+    if($plaintext) {
+      $result = blr_webauth_api_call('users?expand=customers','GET',array('username'=>$plaintext));
+      if(!empty($result) && !isset($result['error']))
+        return blr_webauth_setup_user(current($result));
+    }
+  }
+
+  // Cookie was not valid so remove it
+  blr_webauth_erase_remember_me_cookie();
+}
+
+function blr_webauth_write_remember_me_cookie($username) {
+  $settings = blr_webauth_remember_me_settings();
+
+  // Bail if the cookie is already set
+  if(isset($_COOKIE[$settings['name']])) return;
+
+  // Use a 21 day expiration
+  $expiration = time() + 21 * 3600 * 24;
+
+  // Set the plain text which is just the username
+  $plaintext = $username;
+
+  // Derive a encryption key by taking the master key and expiration and md5 the result
+  $key = md5($settings['master_key'] . $expiration);
+
+  // Prepare the initialization vector for the encryption
+  $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
+  $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
+
+  // Encrypt the plaintext with AES and prepend the IV
+  $ciphertext = $iv . mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key, $plaintext, MCRYPT_MODE_CBC, $iv);
+
+  // Base64 the ciphertext
+  $ciphertext = base64_encode($ciphertext);
+
+  // Set the cookie value while will be the encrypted username and expiration, json encoded
+  $value = json_encode(['expiration'=>$expiration,'username'=>$ciphertext]);
+
+  // Set the cookie
+  setcookie($settings['name'],$value,$expiration,'/',$settings['cookie_domain']);
+}
+
+function blr_webauth_erase_remember_me_cookie() {
+  $settings = blr_webauth_remember_me_settings();
+  setcookie($settings['name'],'',time() - 3600, '/', $settings['cookie_domain']);
+}
+
+function blr_webauth_renewal_remind() {
+  if (isset($_SESSION['webauth']['memberships'][0]['expiration_date'])) {
+    $expiration_date = $_SESSION['webauth']['memberships'][0]['expiration_date'];
+    $warning_date = strtotime($expiration_date . ' - 2 months');
+
+    if ($warning_date <= strtotime('now')) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}

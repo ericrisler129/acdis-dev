@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file
+ * Attach an icon (font-awesome) to a block
+ */
+
+/**
+ * Implements hook_preprocess_block().
+ */
+
+function block_title_icon_preprocess_block(&$variables) {
+  if (!empty($variables['elements']['#block']->icon_html)) {
+    $variables['title_prefix'] = array(
+      '#type' => 'markup',
+      '#markup' => $variables['elements']['#block']->icon_html,
+    );
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Alter block edit form to add configuration field.
+ */
+function block_title_icon_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'block_admin_configure' || $form_id == 'block_add_block_form') {
+    // Load statically cached block object used to display the form.
+    $block = block_load($form['module']['#value'], $form['delta']['#value']);
+
+    $form['settings']['icon_html'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Icon HTML'),
+      '#default_value' => isset($block->icon_html) ? $block->icon_html : '',
+      '#description' => t('Add HTML to prefix block title'),
+      '#maxlength' => 255,
+    );
+
+    $form['#submit'][] = 'block_title_icon_form_submit';
+  }
+}
+
+/**
+ * Submit callback
+ */
+function block_title_icon_form_submit($form, &$form_state) {
+  if ($form_state['values']['form_id'] == 'block_admin_configure' || $form_state['values']['form_id'] == 'block_add_block_form') {
+    // Only save if value has changed.
+    if (isset($form_state['values']['icon_html']) && $form['settings']['icon_html']['#default_value'] != $form_state['values']['icon_html'] && user_access('administer blocks')) {
+      db_update('block')
+        ->fields(array('icon_html' => $form_state['values']['icon_html']))
+        ->condition('module', $form_state['values']['module'])
+        ->condition('delta', $form_state['values']['delta'])
+        ->execute();
+      // Flush all context module cache to use the updated css_class.
+      if (module_exists('context')) {
+        cache_clear_all('context', 'cache', TRUE);
+      }
+    }
+  }
+}

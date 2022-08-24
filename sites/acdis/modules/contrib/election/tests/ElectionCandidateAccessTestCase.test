@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * Test the Election Candidate module for access control.
+ */
+class ElectionCandidateAccessTestCase extends ElectionWebTestCase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
+    $modules = array(
+      'election_fptp',
+      'election_stv',
+    );
+    parent::setUp($modules);
+  }
+
+}

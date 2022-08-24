@@ -1,0 +1,34 @@
+.block--search {
+  text-align: right;
+
+  .form-item {
+    display: inline-block;
+    vertical-align: top;
+    margin: 0;
+
+    input {
+      font-size: $FSbase;
+      text-align: right;
+      width: 244px;
+      height: 34px;
+      padding: 3px 10px;
+      margin: 0 -5px 0 0;
+      border: none;
+      color: $nonArticleLink;
+      background-color: $bodyBG;
+    }
+  }
+
+  .form-actions {
+    display: inline-block;
+    vertical-align: top;
+
+    input {
+      display: block;
+    }
+  }
+
+  .powered-by {
+    padding: 0 0 0 10px;
+  }
+}

@@ -1,0 +1,54 @@
+diff --git a/includes/bootstrap.inc b/includes/bootstrap.inc
+index b6c531c..b4d0dd2 100644
+--- a/includes/bootstrap.inc
++++ b/includes/bootstrap.inc
+@@ -1080,6 +1080,14 @@ function drupal_page_is_cacheable($allow_caching = NULL) {
+  * @see bootstrap_hooks()
+  */
+ function bootstrap_invoke_all($hook) {
++  // Prevent hook_boot() from being invoked more than once.
++  static $boot_invoked;
++  if ($hook == 'boot') {
++    if ($boot_invoked) {
++      return;
++    }
++    $boot_invoked = TRUE;
++  }
+   // Bootstrap modules should have been loaded when this function is called, so
+   // we don't need to tell module_list() to reset its internal list (and we
+   // therefore leave the first parameter at its default value of FALSE). We
+@@ -2401,7 +2409,12 @@ function _drupal_bootstrap_page_cache() {
+     // Make sure there is a user object because its timestamp will be
+     // checked, hook_boot might check for anonymous user etc.
+     $user = drupal_anonymous_user();
+-    // Get the page from the cache.
++    // If the skipping of the bootstrap hooks is not enforced, call
++    // hook_boot.
++    if (variable_get('page_cache_invoke_hooks', TRUE)) {
++      bootstrap_invoke_all('boot');
++    }
++    // Get the page from the cache. This checks drupal_page_is_cacheable().
+     $cache = drupal_page_get_cache();
+     // If there is a cached page, display it.
+     if (is_object($cache)) {
+@@ -2410,11 +2423,6 @@ function _drupal_bootstrap_page_cache() {
+       $_GET['q'] = $cache->data['path'];
+       drupal_set_title($cache->data['title'], PASS_THROUGH);
+       date_default_timezone_set(drupal_get_user_timezone());
+-      // If the skipping of the bootstrap hooks is not enforced, call
+-      // hook_boot.
+-      if (variable_get('page_cache_invoke_hooks', TRUE)) {
+-        bootstrap_invoke_all('boot');
+-      }
+       drupal_serve_page_from_cache($cache);
+       // If the skipping of the bootstrap hooks is not enforced, call
+       // hook_exit.
+@@ -2500,7 +2508,7 @@ function _drupal_bootstrap_variables() {
+ }
+
+ /**
+- * Invokes hook_boot(), initializes locking system, and sends HTTP headers.
++ * Invokes hook_boot() and sends HTTP headers.
+  */
+ function _drupal_bootstrap_page_header() {
+   bootstrap_invoke_all('boot');

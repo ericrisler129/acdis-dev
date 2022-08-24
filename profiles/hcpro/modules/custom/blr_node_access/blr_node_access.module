@@ -1,0 +1,995 @@
+<?php
+
+const FREE_ROLE = 'free';
+const LC_ROLE = 'leadership council';
+
+/**
+ * Implements hook_menu()
+ *
+ * @return mixed
+ */
+function blr_node_access_menu() {
+  $items['membership-check'] = array(
+    //'title' => 'Please log in to view this content',
+    'page callback' => '_membership_check_page_callback',
+    'access callback' => TRUE,
+  );
+
+  $items['lc-check'] = array(
+    'page callback' => '_lc_membership_check_page_callback',
+	'access callback' => TRUE,
+  );
+
+  $items['admin/config/system/blr-node-access'] = array(
+    'title' => 'BLR Node Access',
+    'description' => 'BLR Node Access settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('blr_node_access_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter()
+ *
+ * @param $items
+ */
+
+function blr_node_access_menu_alter(&$items) {
+  $items['user/login']['page callback'] = '_membership_check_page_callback';
+  $items['user/login']['type'] = MENU_CALLBACK;
+}
+
+/**
+ * Implements hook of baseurl for cdi week menu pages
+ */
+function blr_node_access_init() {
+  global $base_url;
+  drupal_add_js(array('baseUrl' => $base_url), 'setting');
+}
+
+/**
+ * Implements hook_node_view()
+ *
+ * @param $node
+ * @param $view_mode
+ * @param $langcode
+ */
+function blr_node_access_node_view($node, $view_mode, $langcode) {
+  if (user_has_role_name('administrator') || user_has_role_name('editor')) {
+    return TRUE;
+  }
+  global $user;
+  $user_has_access = user_can_access_content($user, $node);
+  $user_has_node_access = check_node_override_access($node, $user);
+  $options = array('query' => array('destination' => base_path() . current_path()));
+  $check_category_type = check_field_category_tid($node);
+  $get_tid_value = variable_get('blr_node_acccess_field_res_type_tid');
+
+  if (($view_mode == 'full') && (($node->type == 'resource') || ($node->type == 'article'))) {
+    $resource_type_field = isset($node->field_resource_type['und']) ? $node->field_resource_type['und'][0]['tid'] : '';
+    if (($check_category_type) || ($resource_type_field == $get_tid_value)) {
+      if (user_has_role_name(LC_ROLE)) {
+        if (!is_accessible_via_publication($user, $node)){
+          drupal_goto('membership-check', $options);
+        }
+        return TRUE;
+      }
+      elseif ($user_has_node_access) {
+        return TRUE;
+      }
+      else {
+        drupal_goto('lc-check', $options);
+      }
+    }
+    elseif ($user_has_access) {
+      return TRUE;
+    }
+    else {
+      if ($node->field_publication['und'][0]['publication'] == 4 && ($node->type == 'article')) {
+        drupal_goto('lc-check', $options);
+      }
+      drupal_goto('membership-check', $options);
+    }
+  }
+
+  elseif ($user_has_access) {
+    return;
+  }
+  else {
+    if ($view_mode == 'full') {
+      drupal_goto('membership-check', $options);
+    }
+  }
+}
+
+/**
+ * Implements hook_views_post_execute().
+ */
+function blr_node_access_views_post_execute(&$view) {
+  if ($view->name == "search") {
+    global $user;
+    $results = $view->result;
+
+    foreach ($results as $result) {
+      if (!user_can_access_content($user, $result->entity)) {
+        $result->entity->locked = TRUE;
+        $result->_entity_properties['title'] = "<span class='lock-icon'><i class='fa fa-lock'></i></span>" . $result->_entity_properties['title'];
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form()
+ *
+ * @param $node
+ * @param $form_state
+ */
+function blr_node_access_form($node, &$form_state) {
+  $form = array();
+  $form['blr_node_access_tids'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('List of tids available for LC users'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $form['blr_node_access_tids']['blr_node_acccess_field_category_tid'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('blr_node_acccess_field_category_tid'),
+    '#title' => t('Category tid value'),
+    '#description' => t('Enter the tid number that is available for LC users'),
+    '#required' => TRUE,
+  );
+
+  $form['blr_node_access_tids']['blr_node_acccess_field_res_type_tid'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('blr_node_acccess_field_res_type_tid'),
+    '#title' => t('Resource type tid value'),
+    '#description' => t('Enter the tid number that is available for LC users'),
+    '#required' => TRUE,
+  );
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_form_alter()
+ *
+ * @param $form
+ * @param $form_state
+ * @param $form_id
+ */
+function blr_node_access_form_alter(&$form, $form_state, $form_id) {
+  if($form_id == 'user_login') {
+    $form['name']['#description'] = "";
+    $form['pass']['#description'] = "";
+    $form['#prefix'] = '<div class="login-wrapper"><p class="block-title">Please Log In</p>';
+    $form['#suffix'] = '<a href="https://accounts.blr.com/account/forgot" target="_blank">Forgot username or password?</a></div>';
+    $form['actions']['submit']['#value'] = 'Submit';
+    $form['actions']['submit']['#attributes']['class'][] = 'button-input';
+    $form['actions']['submit']['#attributes']['class'][] = 'button-input-green';
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter()
+ *
+ * @param $form
+ * @param $form_state
+ * @param $form_id
+ */
+function blr_node_access_form_node_form_alter(&$form, &$form_state, $form_id) {
+
+  $role_options = array_diff(array_map("check_plain", user_roles()), array('authenticated user'));
+  $settings = _blr_node_access_node_get_settings($form['nid']['#value']);
+
+  $form['member_access'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Member Access Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'additional_settings',
+  );
+
+  $form['member_access']['override'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Override this node'),
+    '#description' => t('Select to override content access with the options below.'),
+    '#default_value' => !empty($settings) ? 1 : 0,
+  );
+
+  $form['member_access']['roles'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Grant Access'),
+    '#description' => t('Override access to this content for the selected roles.'),
+    '#options' => $role_options,
+    '#default_value' => isset($settings['allowed_roles']) ? $settings['allowed_roles'] : array_keys(user_roles()),
+  );
+
+  $form['member_access']['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $form['nid']['#value'],
+  );
+
+  $form['actions']['submit']['#submit'][] = 'blr_node_access_form_node_form_submit';
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_submit()
+ *
+ * @param $form
+ * @param $form_state
+ * @throws \Exception
+ */
+function blr_node_access_form_node_form_submit($form, &$form_state) {
+  $values = $form_state['values'];
+
+  if (empty($values['override'])) {
+    db_delete('blr_node_access_node')
+      ->condition('entity_id', $values['nid'])
+      ->execute();
+  } else {
+    $exists = db_query('SELECT 1 FROM {blr_node_access_node} WHERE entity_id=:entity_id',
+      array(':entity_id' => $values['nid']))->fetchField();
+
+    if ($exists) {
+      db_update('blr_node_access_node')
+        ->fields(array(
+          'allowed_roles' => serialize($values['roles']),
+        ))
+        ->condition('entity_id', $values['nid'])
+        ->execute();
+    }
+
+    else {
+      db_insert('blr_node_access_node')
+        ->fields(array(
+          'entity_id' => $values['nid'],
+          'allowed_roles' => serialize($values['roles']),
+        ))
+        ->execute();
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ *
+ * @param $form
+ * @param $form_state
+ */
+function blr_node_access_form_node_type_form_alter(&$form, &$form_state) {
+  $role_options = array_map("check_plain", user_roles());
+  $settings = _blr_node_access_get_settings($form['#node_type']->type);
+
+  $form['member_access'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Member Access Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'additional_settings',
+  );
+
+  $form['member_access']['roles'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Grant Access'),
+    '#description' => t('Select roles that have permission to view this content type.'),
+    '#options' => $role_options,
+    '#default_value' => isset($settings['allowed_roles']) ? $settings['allowed_roles'] : array_keys(user_roles()),
+  );
+
+  $form['member_access']['node_type'] = array(
+    '#type' => 'hidden',
+    '#value' => $form['type']['#default_value'],
+  );
+
+  $form['#submit'][] = 'blr_node_access_node_type_form_submit';
+}
+
+/**
+ * Implements hook_FORM_ID_submit()
+ *
+ * @param $form
+ * @param $form_state
+ * @throws \Exception
+ */
+function blr_node_access_node_type_form_submit($form, &$form_state) {
+  $values = $form_state['values'];
+
+  $exists = db_query('SELECT 1 FROM {blr_node_access} WHERE node_type=:node_type',
+    array(':node_type' => $values['type']))->fetchField();
+
+  if ($exists) {
+    db_update('blr_node_access')
+      ->fields(array(
+        'allowed_roles' => serialize($values['roles']),
+      ))
+      ->condition('node_type', $values['type'])
+      ->execute();
+  }
+
+  else {
+    db_insert('blr_node_access')
+      ->fields(array(
+        'node_type' => $values['type'],
+        'allowed_roles' => serialize($values['roles']),
+      ))
+      ->execute();
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter()
+ *
+ * @param $form
+ * @param $form_state
+ * @param $form_id
+ */
+function blr_node_access_form_taxonomy_form_term_alter(&$form, &$form_state, $form_id) {
+
+  $role_options = array_diff(array_map("check_plain", user_roles()), array('authenticated user'));
+  $settings = _blr_node_access_tid_get_settings($form['tid']['#value']);
+
+  $form['member_access'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Member Access Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#group' => 'additional_settings',
+  );
+
+  $form['member_access']['roles'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Grant Access'),
+    '#description' => t('Select roles that have permission to view this taxonomy type.'),
+    '#options' => $role_options,
+    '#default_value' => isset($settings['allowed_roles']) ? $settings['allowed_roles'] : array_keys(user_roles()),
+  );
+
+  $form['member_access']['tid'] = array(
+    '#type' => 'hidden',
+    '#value' => $form['tid']['#value'],
+  );
+
+  $form['#submit'][] = 'blr_node_access_taxonomy_form_term_submit';
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_submit()
+ *
+ * @param $form
+ * @param $form_state
+ * @throws \Exception
+ */
+function blr_node_access_taxonomy_form_term_submit($form, &$form_state) {
+  $values = $form_state['values'];
+
+  $exists = db_query('SELECT 1 FROM {blr_node_access_taxonomy_term} WHERE taxonomy_id=:taxonomy_id',
+    array(':taxonomy_id' => $values['tid']))->fetchField();
+
+  if ($exists) {
+    db_update('blr_node_access_taxonomy_term')
+      ->fields(array(
+        'allowed_roles' => serialize($values['roles']),
+      ))
+      ->condition('taxonomy_id', $values['tid'])
+      ->execute();
+  }
+
+  else {
+    db_insert('blr_node_access_taxonomy_term')
+      ->fields(array(
+        'taxonomy_id' => $values['tid'],
+        'allowed_roles' => serialize($values['roles']),
+      ))
+      ->execute();
+  }
+}
+
+/**
+ * Get settings for content type level node access
+ *
+ * @param null $type
+ * @return array
+ */
+function _blr_node_access_get_settings($type = NULL) {
+  $settings = &drupal_static(__FUNCTION__);
+  //$query = 'SELECT * FROM {blr_node_access}';
+  if (!isset($settings)) {
+    $settings = array();
+
+    $result = db_query('SELECT * FROM {blr_node_access}');
+    foreach ($result as $row) {
+      $settings[$row->node_type] = array(
+        'allowed_roles' => unserialize($row->allowed_roles),
+      );
+    }
+  }
+
+  if ($type && !isset($settings[$type])) {
+    return array();
+  }
+
+  return $type ? $settings[$type] : $settings;
+}
+
+/**
+ * Get settings for node level node access
+ *
+ * @param null $nid
+ * @return array
+ */
+function _blr_node_access_node_get_settings($nid = NULL) {
+  $settings = &drupal_static(__FUNCTION__);
+  //$query = 'SELECT * FROM {blr_node_access}';
+  if (!isset($settings)) {
+    $settings = array();
+
+    $result = db_query('SELECT * FROM {blr_node_access_node} WHERE entity_id = :entity_id', array(':entity_id' => $nid));
+    foreach ($result as $row) {
+      $settings[$row->entity_id] = array(
+        'allowed_roles' => unserialize($row->allowed_roles),
+      );
+    }
+  }
+
+  if ($nid && !isset($settings[$nid])) {
+    return array();
+  }
+
+  return $nid ? $settings[$nid] : $settings;
+}
+
+/**
+ * Get settings for taxonomy level access
+ *
+ * @param null $nid
+ * @return array
+ */
+function _blr_node_access_tid_get_settings($tid = NULL) {
+  $settings = &drupal_static(__FUNCTION__);
+
+  if (!isset($settings)) {
+    $settings = array();
+
+    $result = db_query('SELECT * FROM {blr_node_access_taxonomy_term} WHERE taxonomy_id = :taxonomy_id', array(':taxonomy_id' => $tid));
+    foreach ($result as $row) {
+      $settings[$row->taxonomy_id] = array(
+        'allowed_roles' => unserialize($row->allowed_roles),
+      );
+    }
+  }
+
+  if ($tid && !isset($settings[$tid])) {
+    return array();
+  }
+
+  return $tid ? $settings[$tid] : $settings;
+}
+
+/**
+ * Page callback for membership-check
+ *
+ * @return array
+ * TODO: Create template file
+ */
+function _membership_check_page_callback() {
+  user_is_anonymous() ? $form = drupal_get_form('user_login') : $form = array();
+
+  if (arg(0) == 'user') {
+    $title = "<h1>Log in below to access member only content.</h1>";
+    drupal_set_title("");
+  }
+
+  $content_anon = array(
+    'title' => array(
+      '#type' => 'markup',
+      '#markup' => isset($title) ? $title : "<h1>You have requested access to member only content.</h1>",
+      '#prefix' => "<div class='page-title'><span class='lock-icon'><i class='fa fa-lock fa-2x'></i></span>",
+      '#suffix' => "</div>",
+    ),
+    'summary' => blr_node_access_get_summary(),
+    'login' => $form,
+    'register' => array(
+      '#prefix' => '<div class="register-wrapper">',
+      '#suffix' => '</div>',
+      'inner' => array(
+        '#prefix' => '<p class="block-title">Not a member? Let\'s fix that!</p><div class="register-inner">',
+        '#suffix' => '</div>',
+        'copy' => array(
+          '#markup' => '<p>ACDIS is the nation\'s only association dedicated to the clinical documentation improvement profession. Whether you\'re a veteran CDI specialist or new to the position, or a physician advisor or HIM/coding professional, you\'ll want to take advantage of all the benefits of ACDIS membership including a career center, CDI Journal, CDI Forum, sample forms and tools, and much more.</p><p>Register to access the free content available through the ACDIS site or become a member today. <a href="/membership">Click here</a> for more information.</p><p>For questions and support, please call ACDIS customer service: 800-650-6787.</p>',
+        ),
+        'links' => array(
+          '#prefix' => '<div class="register-links">',
+          '#suffix' => '</div>',
+          'join-now' => array(
+            '#prefix' => '<div class="button">',
+            '#suffix' => '</div>',
+            '#theme' => 'link',
+            '#text' => 'Become a Member',
+            '#path' => 'https://hcmarketplace.com/association-of-clinical-documentation-improvement-specialists',
+            '#options' => array(
+              'attributes' => array(
+                'class' => 'button-green',
+                'target' => '_blank',
+              ),
+              'html' => FALSE,
+            ),
+          ),
+          'learn-more' => array(
+            '#prefix' => '<div class="button">',
+            '#suffix' => '</div>',
+            '#theme' => 'link',
+            '#text' => 'Free Resources',
+            '#path' => '/access-free-sample-content',
+            '#options' => array(
+              'attributes' => array(
+                'class' => 'button-blue',
+              ),
+              'html' => FALSE,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  $content_upgrade = array(
+    'title' => array(
+      '#type' => 'markup',
+      '#markup' => "<h1>Your membership level does not include access to that information.</h1>",
+      '#prefix' => "<div class='page-title'><span class='lock-icon'><i class='fa fa-lock fa-2x'></i></span>",
+      '#suffix' => "</div>",
+    ),
+    'summary' => blr_node_access_get_summary(),
+    'subheading' => array(
+      '#markup' => '<p class="subheading">Upgrade to Receive Access!</p>',
+    ),
+    'upgrade' => array(
+      '#prefix' => '<div class="upgrade-wrapper">',
+      '#suffix' => '</div>',
+      'copy' => array(
+        '#markup' => "<div class='upgrade-copy'><p>Please upgrade your membership level to be able to access this content. With three levels of membership, you can choose the solution that is right for you. <a href='https://hcmarketplace.com/association-of-clinical-documentation-improvement-specialists'>Click here</a> to see our membership options.</p></div>",
+      ),
+      'links' => array(
+        '#prefix' => '<div class="upgrade-links">',
+        '#suffix' => '</div>',
+        /*
+        'learn-more' => array(
+          '#prefix' => '<div class="button">',
+          '#suffix' => '</div>',
+          '#theme' => 'link',
+          '#text' => 'Learn More',
+          '#path' => '/membership/join',
+          '#options' => array(
+            'attributes' => array(
+              'class' => 'button-brand1',
+            ),
+            'html' => FALSE,
+          ),
+        ),
+        */
+      ),
+    ),
+  );
+  $content_non_lc = array(
+  'title' => array(
+      '#type' => 'markup',
+      '#markup' => "<h1>You must become an ACDIS member to access that information.</h1>",
+      '#prefix' => "<div class='page-title'><span class='lock-icon'><i class='fa fa-lock fa-2x'></i></span>",
+      '#suffix' => "</div>",
+    ),
+    'summary' => blr_node_access_get_summary(),
+    'upgrade' => array(
+      '#prefix' => '<div class="upgrade-wrapper">',
+      '#suffix' => '</div>',
+      'copy' => array(
+        '#markup' => "<div class='upgrade-copy'><p style='width:auto;'><b>This is an excerpt from content available exclusively to ACDIS members.</b> As a member of the ACDIS Leadership Council, you have access to articles and resources developed for the Council. To access other site content available exclusively to ACDIS members, like this post, you must purchase an ACDIS membership. <a href='/membership'>Click here</a> to become an ACDIS member today. For questions and support, please call ACDIS customer service: 800-650-6787.</p></div>",
+      ),
+    ),
+  );
+
+  if (user_has_role_name(FREE_ROLE)) {
+    $content_upgrade['upgrade']['links']['upgrade'] = array(
+      '#prefix' => '<div class="button">',
+      '#suffix' => '</div>',
+      '#theme' => 'link',
+      '#text' => 'UPGRADE',
+      '#path' => 'https://hcmarketplace.com/association-of-clinical-documentation-improvement-specialists',
+      '#options' => array(
+        'attributes' => array(
+          'class' => 'button-green',
+          'target' => '_blank',
+        ),
+        'html' => FALSE,
+      ),
+    );
+  } else {
+    $content_upgrade['upgrade']['links']['upgrade_number'] = array(
+      '#markup' => "<p class='upgrade-number'><strong>To Upgrade Call:<br /> 1-800-650-6787</strong></p>",
+    );
+  }
+  if (user_has_role_name(LC_ROLE)) {
+    return $content_non_lc;
+  }
+  return user_is_logged_in() ? $content_upgrade : $content_anon;
+}
+
+/**
+ * Page callback for lc-check
+ *
+ * @return array
+ * TODO: Create template file
+ */
+function _lc_membership_check_page_callback() {
+  user_is_anonymous() ? $form = drupal_get_form('user_login') : $form = array();
+
+  if (arg(0) == 'user') {
+    $title = "<h1>Log in below to access member only content.</h1>";
+    drupal_set_title("");
+  }
+
+  $content_anon = array(
+    'title' => array(
+      '#type' => 'markup',
+      '#markup' => isset($title) ? $title : "<h1>You have requested access to content created exclusively for the ACDIS Leadership Council.</h1>",
+      '#prefix' => "<div class='page-title'><span class='lock-icon'><i class='fa fa-lock fa-2x'></i></span>",
+      '#suffix' => "</div>",
+    ),
+    'summary' => blr_node_access_get_summary(),
+	'subheading' => array(
+      '#markup' => '<p><b>This is an excerpt from content created exclusively for the ACDIS Leadership Council.</b> If you’re a Council member, please log in to access the full post. If you’re not a Council member, please visit <b><i><a href="https://acdis.org/acdis-leadership-council">https://acdis.org/acdis-leadership-council</a></i></b> to learn more about the Council, how to apply if you\'re a current CDI leader, and how to take advantage of the Council resources developed for the broader ACDIS community.</p>',
+    ),
+    'login' => $form,
+    'register' => array(
+      '#prefix' => '<div class="register-wrapper">',
+      '#suffix' => '</div>',
+      'inner' => array(
+        '#prefix' => '<p class="block-title">Not an ACDIS member? Let\'s fix that!</p><div class="register-inner">',
+        '#suffix' => '</div>',
+        'copy' => array(
+          '#markup' => '<p>ACDIS is the nation\'s only association dedicated to the clinical documentation improvement profession. Whether you\'re a veteran CDI specialist or new to the position, or a physician advisor or HIM/coding professional, you\'ll want to take advantage of all the benefits of ACDIS membership including a career center, CDI Journal, CDI Forum, sample forms and tools, and much more.</p><p>Register to access the free content available through the ACDIS site or become a member today. <a href="/membership">Click here</a> for more information.</p><p>For questions and support, please call ACDIS customer service: 800-650-6787.</p>',
+        ),
+        'links' => array(
+          '#prefix' => '<div class="register-links">',
+          '#suffix' => '</div>',
+          'join-now' => array(
+            '#prefix' => '<div class="button">',
+            '#suffix' => '</div>',
+            '#theme' => 'link',
+            '#text' => 'Become an ACDIS Member',
+            '#path' => 'https://hcmarketplace.com/association-of-clinical-documentation-improvement-specialists',
+            '#options' => array(
+              'attributes' => array(
+                'class' => 'button-green',
+                'target' => '_blank',
+              ),
+              'html' => FALSE,
+            ),
+          ),
+          'learn-more' => array(
+            '#prefix' => '<div class="button">',
+            '#suffix' => '</div>',
+            '#theme' => 'link',
+            '#text' => 'Free Resources',
+            '#path' => '/access-free-sample-content',
+            '#options' => array(
+              'attributes' => array(
+                'class' => 'button-blue',
+              ),
+              'html' => FALSE,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  $free_user_language = "<div class='upgrade-copy'><p><b>This is an excerpt from content created exclusively for the ACDIS Leadership Council.</b> If you're a Council member and unable to see this content, please contact Council leadership for assistance. If you're not a Council member, please visit <b><i><a href='https://acdis.org/acdis-leadership-council'>https://acdis.org/acdis-leadership-council</a></i></b> to learn more about the Council, how to apply if you're a current CDI leader, and how to take advantage of Council resources developed for the broader ACDIS community. To access content and benefits available exclusively to ACDIS members, you can upgrade your access level. Click the \"Upgrade\" button below to see our membership options.</p></div>";
+  $other_user_language = "<div class='upgrade-copy'><p><b>This is an excerpt from content created exclusively for the ACDIS Leadership Council.</b> If you're a Council member and unable to see this content, please contact Council leadership for assistance. If you're not a Council member, please visit <b><i><a href='https://acdis.org/acdis-leadership-council'>https://acdis.org/acdis-leadership-council</a></i></b> to learn more about the Council, how to apply if you're a current CDI leader, and how to take advantage of Council resources developed for the broader ACDIS community.</p></div>";
+  $content_upgrade = array(
+    'title' => array(
+      '#type' => 'markup',
+      '#markup' => "<h1>You have requested access to content created exclusively for the ACDIS Leadership Council.</h1>",
+      '#prefix' => "<div class='page-title'><span class='lock-icon'><i class='fa fa-lock fa-2x'></i></span>",
+      '#suffix' => "</div>",
+    ),
+    'summary' => blr_node_access_get_summary(),
+    'upgrade' => array(
+      '#prefix' => '<div class="upgrade-wrapper">',
+      '#suffix' => '</div>',
+      'copy' => array(
+        '#markup' => user_has_role_name(FREE_ROLE) == TRUE ? $free_user_language : $other_user_language,
+      ),
+      'links' => array(
+        '#prefix' => '<div class="upgrade-links">',
+        '#suffix' => '</div>',
+      ),
+    ),
+  );
+
+  if (user_has_role_name(FREE_ROLE)) {
+    $content_upgrade['upgrade']['links']['upgrade'] = array(
+      '#prefix' => '<div class="button">',
+      '#suffix' => '</div>',
+      '#theme' => 'link',
+      '#text' => 'UPGRADE',
+      '#path' => 'https://hcmarketplace.com/association-of-clinical-documentation-improvement-specialists',
+      '#options' => array(
+        'attributes' => array(
+          'class' => 'button-green',
+          'target' => '_blank',
+        ),
+        'html' => FALSE,
+      ),
+    );
+  }
+
+  return user_is_logged_in() ? $content_upgrade : $content_anon;
+}
+
+/**
+ * Check if user has access to given content
+ *
+ * @param $user
+ * @param $entity
+ * @return bool
+ */
+function user_can_access_content($user, &$entity) {
+  if (user_has_role_name('administrator') || user_has_role_name('editor')) return TRUE;
+  $entity->locked = TRUE;
+
+  $allowed_roles = get_allowed_roles($entity);
+  $content_access_roles = array_intersect($allowed_roles, array_keys($user->roles));
+
+  if (is_accessible_via_taxonomy($entity, $user)) {
+    $entity->locked = FALSE;
+    return TRUE;
+  }
+
+  if (is_accessible_via_publication($user, $entity) && !empty($content_access_roles)) {
+    $entity->locked = FALSE;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Get roles that can access given content
+ *
+ * @param $node
+ * @return array|mixed
+ */
+function get_allowed_roles($node) {
+  // Check for content type level entry
+  $content_type_entry = db_query('SELECT * FROM {blr_node_access} WHERE node_type=:node_type',
+    array(':node_type' => $node->type))->fetchAssoc();
+
+  if($content_type_entry) {
+    $allowed_roles = unserialize($content_type_entry['allowed_roles']);
+  }
+
+  // Check for node level entry
+  $node_overrides = db_query('SELECT * FROM {blr_node_access_node} WHERE entity_id=:entity_id',
+    array(':entity_id' => $node->nid))->fetchAssoc();
+
+  if($node_overrides) {
+    $allowed_roles = unserialize($node_overrides['allowed_roles']);
+  }
+
+  return !empty($allowed_roles) ? $allowed_roles : array();
+}
+
+function is_accessible_via_publication($user, $entity) {
+  if (user_has_role_name("administrator")) return TRUE;
+
+  if (module_exists('blr_issue_browser')) {
+    // Check for node level entry
+    $node_overrides = db_query('SELECT * FROM {blr_node_access_node} WHERE entity_id=:entity_id',
+      array(':entity_id' => $entity->nid))->fetchAssoc();
+
+    if($node_overrides) {
+      return TRUE;
+    }
+
+    if (isset($entity->field_publication[LANGUAGE_NONE][0]['publication'])) {
+      $publications = get_publication_access_roles($entity->field_publication[LANGUAGE_NONE][0]['publication']);
+      if (empty(array_intersect($publications['allowed_roles'], array_keys($user->roles)))) return FALSE;
+    }
+
+    //checking category for LC content
+    if (check_field_category_tid($entity) && !user_has_role_name(LC_ROLE)) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+/**
+ * Check if user has role with given name
+ *
+ * @param $role_name
+ * @return bool
+ */
+function user_has_role_name($role_name) {
+  global $user;
+
+  if (in_array($role_name, $user->roles)) return TRUE;
+
+  return FALSE;
+}
+
+function blr_node_access_get_summary() {
+  $node = false;
+  $summary = array();
+
+  if(isset($_GET['destination'])) {
+    $destination = $_GET['destination'];
+    $path = drupal_get_normal_path($destination);
+    $node = node_load(arg(2,$path));
+    $is_leadership_content = _check_leadership_council_content($node);
+  }
+
+  if($node && ($is_leadership_content == FALSE) && !user_has_role_name(LC_ROLE)) {
+    $summary = array(
+      '#type' => 'markup',
+      '#markup' => isset($node->body[LANGUAGE_NONE][0]['safe_summary']) ? $node->body[LANGUAGE_NONE][0]['safe_summary'] : "",
+      '#prefix' => "<div class='node'><div class='field-name-title'><h1>{$node->title}</h1>",
+      '#suffix' => "<p><strong>This is an excerpt from a members-only article.  Please log in or become a member to read the complete article.</strong></b></p></div></div>"
+    );
+  }
+  else {
+    if ($node) {
+      $summary = array(
+        '#type' => 'markup',
+        '#markup' => isset($node->body[LANGUAGE_NONE][0]['safe_summary']) ? $node->body[LANGUAGE_NONE][0]['safe_summary'] : "",
+        '#prefix' => "<div class='node'><div class='field-name-title'><h1>{$node->title}</h1>",
+        '#suffix' => "</div><p>&nbsp;</p></div>"
+      );
+    }
+  }
+
+  return $summary;
+}
+
+/**
+ * @param $node
+ * @param $user_roles
+ * @return bool
+ */
+function is_accessible_via_taxonomy($node, $user) {
+
+  $access_terms = get_node_access_terms($node);
+  $user_roles = $user->roles;
+
+  foreach ($access_terms as $term_id) {
+    $allowed_roles = db_query('SELECT * FROM {blr_node_access_taxonomy_term} WHERE taxonomy_id=:taxonomy_id',
+      array(':taxonomy_id' => $term_id))->fetchAssoc();
+
+    if (!empty($allowed_roles)) {
+      $taxonomy_term_roles = unserialize($allowed_roles['allowed_roles']);
+      $roles = array_intersect($taxonomy_term_roles, array_keys($user->roles));
+
+      if (!empty($roles)) {
+        return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * @param $node
+ * @return array
+ */
+function get_node_access_terms($node) {
+  $terms[] = get_taxonomy_access_term($node, 'field_resource_type');
+  $terms[] = get_taxonomy_access_term($node, 'field_category');
+  $access_terms = array_flatten($terms);
+
+  return $access_terms;
+}
+
+/**
+ * Get taxonomy access term
+ *
+ * @param $node
+ * @param $term_field
+ * @return int
+ */
+function get_taxonomy_access_term($node, $term_field) {
+  if($access_term = field_get_items('node', $node, $term_field)) {
+    for ($i = 0; $i < count($access_term); $i++) {
+      $access_terms[] = $access_term[$i]['tid'];
+    }
+    return $access_terms;
+  }
+  return 0;
+}
+
+/**
+ * Checks only if user is listed in node overide for a node.
+ *
+ * @param $entity
+ * @param $user
+ */
+function check_node_override_access($entity, $user) {
+  $node_overrides = db_query('SELECT * FROM {blr_node_access_node} WHERE entity_id=:entity_id',
+    array(':entity_id' => $entity->nid))->fetchAssoc();
+
+  if (!empty($node_overrides)) {
+    $node_roles = unserialize($node_overrides['allowed_roles']);
+    $roles = array_intersect($node_roles, array_keys($user->roles));
+
+    return $roles;
+  }
+}
+
+/**
+ * Checking for category tid name "Council News" which was set in system/blr-node-access
+ *
+ * @param $node
+ * @return bool
+ */
+function check_field_category_tid($node) {
+  if (isset($node->field_category['und'])) {
+    $field_category_tids = $node->field_category['und'];
+    $get_category_tid = variable_get('blr_node_acccess_field_category_tid');
+
+    foreach ($field_category_tids as $tid) {
+      if ($tid['tid'] == $get_category_tid) {
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
+}
+
+function array_flatten($array) {
+  if (!is_array($array)) {
+    return FALSE;
+  }
+  $result = array();
+  foreach ($array as $key => $value) {
+    if (is_array($value)) {
+      $result = array_merge($result, array_flatten($value));
+    }
+    else {
+      $result[$key] = $value;
+    }
+  }
+  return $result;
+}
+
+// check if there is a leadership council taxonomy type tagged to node.
+function _check_leadership_council_content($node) {
+  global $user;
+  $count = count($node->field_category['und']);
+
+  for($i=0; $i < $count; $i++) {
+    $term = taxonomy_term_load($node->field_category['und'][$i]['tid']);
+    $term_names[$i] = $term->name;
+  }
+
+  if($node->type == 'resource') {
+    $term = taxonomy_term_load($node->field_resource_type['und'][0]['tid']);
+    $term_names['res_type'] = $term->name;
+  }
+
+  foreach($term_names as $term_name) {
+    if((strpos($term_name, "Council")) !== FALSE) {
+      return TRUE;
+    }
+  }
+  if (!is_accessible_via_publication($user, $node)) {
+    return TRUE;
+  }
+  return FALSE;
+}

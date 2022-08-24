@@ -1,0 +1,27 @@
+{
+  "name": "client-theme",
+  "description": "Client sub-theme for the HCPRO platform",
+  "version": "1.0.0",
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-contrib-copy": "~0.4.0",
+    "grunt-contrib-requirejs": "~0.4.1",
+    "grunt-contrib-compass": "~0.7.1",
+    "grunt-contrib-watch": "~0.4.3",
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-contrib-imagemin": "~0.4.0",
+    "grunt-image-embed": "~0.3.1",
+    "grunt-svgmin": "~0.3.0",
+    "grunt-contrib-rename": "0.0.3",
+    "grunt-contrib-jshint": "~0.4.3",
+    "grunt-prompt": "~0.1.2",
+    "underscore": "~1.5.2",
+    "grunt-bower-task": "~0.3.4",
+    "grunt-bless": "~0.1.1",
+    "grunt-concurrent": "~1.0.0",
+    "grunt-jsbeautifier": "~0.2.7"
+  },
+  "scripts": {
+    "postinstall": "find node_modules/ -name '*.info' -type f -delete"
+  }
+}

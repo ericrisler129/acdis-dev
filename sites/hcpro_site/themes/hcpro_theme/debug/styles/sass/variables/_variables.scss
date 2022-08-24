@@ -1,0 +1,81 @@
+/* Required Imports */
+
+/*** Colors ***/
+$brand1: #116798;
+$brand2: #a74033;
+$brand3: #f4f4f4;
+
+/* Colors - Text */
+$copy: #000000;
+$nodeTitles: $copy;
+$nodeTitlesLink: #008ed8;
+$articleLink: $nodeTitlesLink;
+$nonArticleLink: #445b72;
+
+/* Colors - Background */
+$bodyBG: #f2f2f2;
+$contentBG: #ffffff;
+$headerBG: #0a8282;
+$navBG: #3b393a;
+$footerBG: #3b393a;
+$tableEvenBG: $bodyBG;
+
+/* Colors - Forms */
+$inputBorder: #cccccc;
+$placeholderText: #445b72;
+$formLabel: #666666;
+
+/* Colors - Sections */
+$featuredLight: #40a0a0;
+$featuredDark: #0a8282;
+$membershipLight: #f2f2f2;
+$membershipDark: #999999;
+$membershipHeader: #57585b;
+$resourcesLight: #f2e5d6;
+$resourcesDark: #ffc066;
+$resourcesHeader: #efa639;
+$newsLight: #ccedd9;
+$newsDark: #4bba7e;
+$newsHeader: #0c9a4d;
+$networkLight: #f4d7e1;
+$networkDark: #ea5c81;
+$networkHeader: #c51d3b;
+
+/* Colors - Buttons */
+$buttonInfo: #58bede;
+$buttonSubscribe: #58b756;
+$buttonMember: #262626;
+
+/* Typography */
+$primaryFont: 'Open Sans', sans-serif;
+$primaryFontWeightMed: 600;
+$primaryFontWeightBold: 700;
+
+/* Master Font sizes */
+$FSbase: 1em;
+$FSextraSmall: 0.750em;
+$FSsmall: 0.875em;
+$FSlarge: 1.125em;
+$FSextraLarge: 1.250em;
+
+/* Element font sizes */
+$FSsearchPlaceholder: $FSextraSmall;
+$FSdefault: $FSsmall;
+$FSnavigation: $FSbase;
+$FSnodeTitles: $FSlarge;
+$FSheaders: $FSextraLarge;
+
+/* Grid Setup */
+@include add-grid(12);
+@include add-gutter(20px);
+$gutterSize: gutter-span();
+
+/* Layout */
+$siteWidth: 1100px;
+
+/* Breakpoints */
+$mobileSmall: 480px;
+$mobile: 640px;
+$tabSmall: 768px;
+$tab: 1024px;
+$desk: $siteWidth;

@@ -1,0 +1,48 @@
+// Just views tables for now
+.view-content {
+  table {
+    width: 100%;
+
+    tr {
+      background: none;
+
+      th {
+        padding: 5px 10px;
+        background: none;
+
+        a {
+          color: $copy;
+
+          &.active {
+            img {
+              margin: 0 5px;
+            }
+          }
+
+          &:hover {
+            color: lighten($copy, 50);
+          }
+        }
+
+        border-bottom: 2px solid $tableEvenBG;
+      }
+
+      &.even {
+        background-color: $tableEvenBG;
+      }
+
+      td {
+        padding: 3px 10px;
+
+        &.active {
+          background: inherit;
+        }
+
+        &.views-field-field-resource-type,
+        &.views-field-field-resource-category {
+          font-size: $FSsmall;
+        }
+      }
+    }
+  }
+}

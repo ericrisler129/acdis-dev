@@ -1,0 +1,112 @@
+@mixin flexreset() {
+  .flexslider {
+    margin: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+@mixin center($axis: "both"){
+  position:absolute;
+  @if $axis == "y"{
+    top:50%;
+    @include translateY(-50%);
+  }
+  @if $axis == "x"{
+    left:50%;
+    @include translateX(-50%);
+  }
+  @if $axis == "both"{
+    top:50%;
+    left:50%;
+    @include translate(-50%, -50%);
+  }
+}
+
+@mixin iconize($bg-color: #000000, $icon-color: #000000) {
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+  width: 48px;
+  height: 48px;
+  background-color: $bg-color;
+
+  &:before {
+    @include center(both);
+    @include border-radius(50%);
+    font-size: 1.714em;
+    padding: 7px;
+    color: $icon-color;
+    background-color: #ffffff;
+  }
+}
+
+@mixin lock($size: 20px) {
+  position: relative;
+
+  .lock-icon {
+    position: absolute;
+    top: 3px;
+    left: 0;
+
+    i {
+      @include border-radius(50%);
+      font-size: 1em;
+      text-align: center;
+      line-height: $size;
+      width: $size;
+      vertical-align: middle;
+      color: #ffffff;
+      background-color: #cccccc;
+    }
+  }
+}
+
+@mixin button($bghover: $buttonBlack) {
+  transition: all 0.3s ease;
+  display: inline-block;
+  padding: 5px 30px;
+  color: $bghover;
+  background: none;
+  border: 2px solid $bghover;
+
+  &:hover,
+  &:active,
+  &:focus {
+    background-color: $bghover;
+    color: #ffffff;
+  }
+
+  &.button-reverse {
+    background-color: $bghover;
+    color: #ffffff;
+
+    &:hover,
+    &:active,
+    &:focus {
+      background-color: lighten($bghover, 10);
+    }
+  }
+}
+
+@mixin infobox($border: left, $border-color: $brand2) {
+  background-color: $infobox;
+  padding: 5px 10px;
+
+  @if $border == "left"{
+    border-left: 4px solid $border-color;
+  }
+
+  @if $border == "top"{
+    border-top: 4px solid $border-color;
+  }
+
+  @if $border == "right"{
+    border-right: 4px solid $border-color;
+  }
+
+  @if $border == "bottom"{
+    border-bottom: 4px solid $border-color;
+  }
+}

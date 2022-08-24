@@ -1,0 +1,38 @@
+.block-resources {
+  .view-content {
+    thead {
+      background-color: $brand3;
+      border-left: 4px solid $brand2;
+
+      th {
+        text-transform: uppercase;
+        border: none;
+        padding: 10px;
+      }
+    }
+
+    tbody {
+      tr {
+        background-color: transparent;
+        border-bottom: 1px solid $brand3;
+      }
+    }
+  }
+
+  &.styled-filter {
+    .view-filters {
+      form {
+        .views-exposed-widgets {
+          .views-exposed-widget {
+            margin: 0 8px 0 0;
+
+            .form-submit {
+              @include button($buttonGreen);
+              padding: 5px 8px;
+            }
+          }
+        }
+      }
+    }
+  }
+}

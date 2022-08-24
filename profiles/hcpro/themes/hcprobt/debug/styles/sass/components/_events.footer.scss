@@ -1,0 +1,80 @@
+.block-events-footer {
+  &.branded {
+    margin: 0;
+  }
+
+  .block__content {
+    @include clearfix;
+
+    .footer-event-block {
+      float: left;
+      width: 100%;
+      padding: 0 10px;
+
+      &:last-child {
+        border: none;
+      }
+
+      .l-region--sidebar-second & {
+        padding: 0;
+      }
+
+      @include breakpoint($tabSmall) {
+        width: 50%;
+        border-right: 1px solid #ccc;
+
+        .l-region--sidebar-second & {
+          width: 100%;
+          border: none;
+        }
+      }
+
+      @include breakpoint($tab) {
+        width: 25%;
+
+        .l-region--sidebar-second & {
+          width: 100%;
+        }
+      }
+
+      a {
+        color: $nonArticleLink;
+
+        &:hover {
+          color: lighten($nonArticleLink, 10);
+        }
+      }
+
+      p {
+        line-height: 1.2;
+      }
+
+      .event-category-title {
+        font-size: $FSdefault;
+        margin: 0 0 10px;
+      }
+
+      .event-item {
+        line-height: 1;
+        margin: 0 0 10px;
+      }
+
+      .event-more-link {
+        text-align: right;
+        display: block;
+        color: $nonArticleLink;
+      }
+
+      .button {
+        font-size: $FSbase;
+        float: right;
+      }
+    }
+  }
+
+  .l-region--sidebar-second & {
+    i {
+      display: none !important;
+    }
+  }
+}

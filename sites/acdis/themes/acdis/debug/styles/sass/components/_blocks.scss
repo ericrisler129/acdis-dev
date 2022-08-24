@@ -1,0 +1,7 @@
+.block {
+  &.standard-block {
+    .title-wrapper {
+      border-top: 8px solid $navBG;
+    }
+  }
+}

@@ -1,0 +1,12 @@
+name = Election Condition
+description = Allows other modules to define voter eligibility conditions in code. Conditions can then be assigned to election posts via the UI. For simpler conditions, you may want to use Rules.
+core = 7.x
+package = Election
+dependencies[] = election
+dependencies[] = election_post
+
+; Information added by Drupal.org packaging script on 2019-08-15
+version = "7.x-1.5"
+core = "7.x"
+project = "election"
+datestamp = "1565892488"

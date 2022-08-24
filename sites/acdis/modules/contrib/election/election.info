@@ -1,0 +1,36 @@
+name = Election
+description = Provides online voting.
+core = 7.x
+package = Election
+dependencies[] = entity
+dependencies[] = views
+dependencies[] = date
+stylesheets[all][] = election.css
+files[] = includes/election-default.controller.inc
+files[] = includes/election.controller.inc
+files[] = views/handlers/election_views_handler_field_link.inc
+files[] = views/handlers/election_views_handler_field_link_delete.inc
+files[] = views/handlers/election_views_handler_field_link_edit.inc
+files[] = views/handlers/election_views_handler_filter_published.inc
+files[] = tests/ElectionCandidateAccessTestCase.test
+files[] = tests/ElectionCandidateCrudTestCase.test
+files[] = tests/ElectionCandidateNominationAccessTestCase.test
+files[] = tests/ElectionCandidateTokenTestCase.test
+files[] = tests/ElectionCandidateTypeCrudTestCase.test
+files[] = tests/ElectionCandidateViewAccessTestCase.test
+files[] = tests/ElectionCrudTestCase.test
+files[] = tests/ElectionPostAccessTestCase.test
+files[] = tests/ElectionPostCrudTestCase.test
+files[] = tests/ElectionPostViewAccessTestCase.test
+files[] = tests/ElectionUnitTestCase.test
+files[] = tests/ElectionVoteAccessByRoleTestCase.test
+files[] = tests/ElectionVoteAccessCandidatesTestCase.test
+files[] = tests/ElectionVoteAccessPreventDuplicateTestCase.test
+files[] = tests/ElectionWebTestCase.test
+configure = admin/config/election
+
+; Information added by Drupal.org packaging script on 2019-08-15
+version = "7.x-1.5"
+core = "7.x"
+project = "election"
+datestamp = "1565892488"

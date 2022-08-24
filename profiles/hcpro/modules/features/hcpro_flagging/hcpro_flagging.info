@@ -1,0 +1,17 @@
+name = HCPro Flagging
+core = 7.x
+package = HCPro Features
+version = 7.x-1.0
+dependencies[] = ds
+dependencies[] = features
+dependencies[] = flag
+dependencies[] = views
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:2
+features[flag][] = favorites
+features[user_permission][] = administer flags
+features[user_permission][] = flag favorites
+features[user_permission][] = unflag favorites
+features[user_permission][] = use flag import
+features[views_view][] = favorites
+features_exclude[dependencies][ctools] = ctools

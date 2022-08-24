@@ -1,0 +1,71 @@
+<?php
+
+/**
+ * Test Election Candidate access control for viewing candidates.
+ */
+class ElectionCandidateViewAccessTestCase extends ElectionCandidateAccessTestCase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Election Candidate view access',
+      'description' => 'Test access control for viewing candidates.',
+      'group' => 'Election',
+    );
+  }
+
+  /**
+   * Test that view access is affected by the published status of the candidate.
+   */
+  public function testPublishedAccess() {
+    // Create a published election of type 'stv', with open nominations.
+    $election = $this->helperElectionCreate('stv', TRUE, NULL, ELECTION_STATUS_OPEN, NULL);
+    // Create a published post in the election.
+    $post = $this->helperElectionPostCreate($election, TRUE);
+
+    // Create a user who is allowed to view published elections, and log in.
+    $account = $this->drupalCreateUser(array(
+      'view published elections',
+    ));
+    $this->drupalLogin($account);
+
+    // Create a published candidate.
+    $candidate = $this->helperElectionCandidateCreate($post, TRUE);
+    $candidate_path = election_candidate_uri_path($candidate);
+
+    // Visit the candidate page and check that access is granted.
+    $this->drupalGet($candidate_path);
+    $this->assertResponse(200, t('Access is granted to view a published candidate.'));
+
+    // Modify the election so that it is unpublished.
+    $election->published = 0;
+    election_save($election);
+
+    // Visit the candidate page and check that access is denied.
+    $this->drupalGet($candidate_path);
+    $this->assertResponse(403, t('Access is denied to view a published candidate in an unpublished election.'));
+
+    // Make the election published again, and unpublish the post.
+    $election->published = 1;
+    election_save($election);
+    $post->published = 0;
+    election_post_save($post);
+
+    // Visit the candidate page and check that access is denied.
+    $this->drupalGet($candidate_path);
+    $this->assertResponse(403, t('Access is denied to view a published candidate in an unpublished post.'));
+
+    // Make the post published again, and unpublish the candidate.
+    $post->published = 1;
+    election_post_save($post);
+    $candidate->published = 0;
+    election_candidate_save($candidate);
+
+    // Visit the candidate page and check that access is denied.
+    $this->drupalGet($candidate_path);
+    $this->assertResponse(403, t('Access is denied to view an unpublished candidate in a published post.'));
+  }
+
+}

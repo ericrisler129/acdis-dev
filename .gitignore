@@ -1,0 +1,23 @@
+# Ignore configuration files that may contain sensitive information.
+sites/*/settings*.php
+
+# Ignore multisite files
+sites/sites.*.php
+
+# Ignore paths that contain user-generated content.
+sites/*/files
+sites/*/private
+
+.sass_cache
+
+node_modules
+
+.DS_Store
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+# Ignore JetBrains IDE settings folder
+.idea/*

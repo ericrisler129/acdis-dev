@@ -1,0 +1,63 @@
+.styled-filter {
+  .view-filters {
+    font-size: $FSsmall;
+    margin: 0 0 20px;
+
+    .filter-label {
+      display: inline-block;
+      vertical-align: middle;
+      padding: 0 10px;
+      margin: 0 10px 0 0;
+      background-color: $brand3;
+
+      span {
+        font-weight: $primaryFontWeightMed;
+        line-height: 34px;
+      }
+    }
+
+    form {
+      display: inline-block;
+      vertical-align: middle;
+
+      .views-exposed-widgets {
+        margin: 0;
+
+        .views-exposed-widget {
+          padding: 0;
+          margin: 0 10px 0 0;
+
+          input,
+          select {
+            height: 34px;
+            border: 1px solid $inputBorder;
+          }
+
+          input {
+            padding: 0 10px;
+          }
+
+          .form-item-keywords {
+            input {
+              max-width: 195px;
+            }
+          }
+
+          &.views-submit-button {
+            margin: 0;
+            position: relative;
+
+            input {
+              margin: 0;
+
+              & + div {
+                position: absolute;
+                right: 0;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

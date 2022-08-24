@@ -1,0 +1,67 @@
+.block-sm {
+  .block__content {
+    @include clearfix;
+
+    a {
+      float: left;
+
+      &:last-child {
+        margin: 0;
+      }
+
+      i {
+        transition: all 0.3s ease;
+
+        &.fb {
+          color: #3b5998;
+
+          &:hover {
+            color: lighten(#3b5998, 10);
+          }
+        }
+
+        &.tw {
+          color: #4099ff;
+
+          &:hover {
+            color: lighten(#4099ff, 10);
+          }
+        }
+
+        &.li {
+          color: #4875B4;
+
+          &:hover {
+            color: lighten(#4875B4, 10);
+          }
+        }
+      }
+    }
+  }
+
+  &.block-sm-header {
+    display: inline-block;
+    vertical-align: top;
+    margin: 0 0 0 10px;
+
+    .block__content {
+      padding: 4px;
+
+      a {
+        font-size: 1.500em;
+        margin-right: 8px;
+      }
+    }
+  }
+
+  &.block-sm-footer {
+    margin: 0 0 20px;
+
+    .block__content {
+      a {
+        font-size: 2em;
+        margin-right: 10px;
+      }
+    }
+  }
+}

@@ -1,0 +1,237 @@
+<?php
+
+function blr_talk_group_menu() {
+  $items['talk-group/join'] = [
+    //'title' => 'Visit the Medicare Talk Group',
+    'page callback' => '_blr_talk_group_bt_join',
+    //'access callback' => '_blr_talk_group_access_callback',
+    'access callback' => TRUE,
+  ];
+  $items['talk-group/subscribe'] = [
+    //'title' => 'Join the Medicare Talk Group',
+    'page callback' => '_blr_talk_group_bt_subscribe',
+    'access callback' => TRUE,
+  ];
+  $items['talk-group/unsubscribe'] = [
+    'page callback' => '_blr_talk_group_bt_unsubscribe',
+    'access callback' => TRUE,
+  ];
+  $items['admin/config/services/talk-group'] = array(
+    'title' => 'Talk Group',
+    'description' => 'BLR talk group configuration settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('talk_group_admin_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  return $items;
+}
+
+/**
+ * @param $node
+ * @param $form_state
+ * @return mixed
+ *
+ * Administration form
+ */
+function talk_group_admin_form($node, &$form_state) {
+  $form['talk_group_list'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('talk_group_list', ''),
+    '#title' => t('Talk group list'),
+    '#required' => TRUE,
+  );
+
+  $form['talk_group_title'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('talk_group_title', 'Talk Group'),
+    '#title' => t('Talk group title'),
+    '#required' => TRUE,
+  );
+
+  return system_settings_form($form);
+}
+
+function _blr_talk_group_access_callback() {
+  if (user_is_anonymous() || user_has_role(8)) {
+    return theme('talk_group_anon');
+  } else {
+    return TRUE;
+  }
+}
+
+function blr_talk_group_theme() {
+  return [
+     'talk_group_sub' => [
+        'template' => 'talk-group-sub',
+     ],
+     'talk_group_unsub' => [
+        'template' => 'talk-group-unsub',
+     ],
+     'talk_group_anon' => [
+        'template' => 'talk-group-anon',
+     ]
+  ];
+}
+
+function _blr_talk_group_bt_join() {
+  if (user_has_role(8)) {
+    return theme('talk_group_anon');
+  }
+
+  global $user;
+
+  $email = false;
+
+  if(!isset($user->mail) || !($email = $user->mail)) {
+    if(isset($_COOKIE['talk-group-account']))
+      $email = $_COOKIE['talk-group-account'];
+  }
+
+  if(!$email) {
+     // Anon. signup was canceled for MEDP project, we are just showing a static page now
+     // $form = blr_talk_group_subscribe_form();
+     return theme('talk_group_anon');
+  }
+
+  $list = variable_get('talk_group_list', '');
+  $status = _blr_talk_group_status($email,$list);
+
+  if($status === null) // what to do about failed to check status
+    return ['#markup'=>'We are unable to communicate with the ListServ system at this time.'];
+
+  if($status)
+     return theme('talk_group_sub');
+  else
+     return theme('talk_group_unsub');
+}
+
+function _blr_talk_group_bt_subscribe() {
+  global $user;
+
+  $email = false;
+
+  if(!isset($user->mail) || !($email = $user->mail)) {
+    if(isset($_COOKIE['talk-group-account']))
+      $email = $_COOKIE['talk-group-account'];
+  }
+
+  if(!$email) {
+     // Anon. signup was canceled for MEDP project, we are just showing a static page now
+     // $form = blr_talk_group_subscribe_form();
+     return theme('talk_group_anon');
+  }
+
+  $list = variable_get('talk_group_list', '');
+
+  $status = _blr_talk_group_subscribe($email,$list);
+  if($status)
+   drupal_set_message('You are now subscribed to '.$list = variable_get('talk_group_title', 'Talk Group').'.');
+  else
+   drupal_set_message('An error has occured.  Please try again later.');
+  drupal_goto('talk-group/join');
+}
+
+function _blr_talk_group_bt_unsubscribe() {
+  global $user;
+
+  $email = false;
+
+  if(!isset($user->mail) || !($email = $user->mail)) {
+    if(isset($_COOKIE['talk-group-account']))
+      $email = $_COOKIE['talk-group-account'];
+  }
+
+  if(!$email) {
+     // Anon. signup was canceled for MEDP project, we are just showing a static page now
+     // $form = blr_talk_group_subscribe_form();
+     return theme('talk_group_anon');
+  }
+
+  $list = variable_get('talk_group_list', '');
+
+  $status = _blr_talk_group_unsubscribe($email,$list);
+  if($status)
+   drupal_set_message('You have been unsubscribed from '.$list = variable_get('talk_group_title', 'Talk Group').'.');
+  else
+   drupal_set_message('An error has occured.  Please try again later.');
+  drupal_goto('talk-group/join');
+}
+
+
+function blr_talk_group_subscribe_form() {
+  $form = array();
+
+  $form['Email'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Email',
+    '#required' => true,
+    '#attributes' => array(
+      'class' => 'subscribe-address',
+    ),
+  );
+
+  $form['join'] = array(
+    '#prefix' => "<div class='button'>",
+    '#suffix' => "</div>",
+    'link' => array(
+      '#markup' => "<a onclick=\"jQuery('#bt').load('/bt/ajax/subscribe-anonymous?email=' + jQuery('.subscribe-address').val());\" href='#'>Join the Discussion</a>",
+    ),
+  );
+
+  return $form;
+}
+
+function blr_talk_group_subscribe_form_validate($form, &$form_state) {
+  $mail = $form_state['values']['Email'];
+  if (!valid_email_address($mail)) {
+    form_set_error('[values][Email]', t('The email address appears to be invalid.'));
+  }
+}
+
+function button_listserv() {
+  $output = "";
+  $output .= "<div class='button'><a href='http://list.hcpro.com/read/?forum=billers_talk' target='_blank'>Visit the Medicare Portal Talk Group Listserv</a></div>";
+  return $output;
+}
+
+
+function _blr_talk_group_subscribe($email,$list) {
+  try {
+    $client = new SoapClient('http://list.hcpro.com:82/?wsdl',['login'=>'lperrin@blr.com','password'=>'.hcpro.']);
+    $members = $client->SelectMembers(["ListName=$list","EmailAddress={$email}"]);
+
+    if(empty($members))
+      $client->CreateSingleMember($email,$email,$list);
+    else
+      $client->UpdateMemberStatus(['ListName'=>$list,'EmailAddress'=>$email],'normal');
+    return true;
+  } catch( Exception $e) { }
+  return false;
+}
+
+function _blr_talk_group_unsubscribe($email,$list) {
+  try {
+    $client = new SoapClient('http://list.hcpro.com:82/?wsdl',['login'=>'lperrin@blr.com','password'=>'.hcpro.']);
+    $client->Unsubscribe([['ListName'=>$list,'EmailAddress'=>$email]]);
+
+    return true;
+  } catch( Exception $e) {
+  }
+  return false;
+}
+
+function _blr_talk_group_status($email,$list) {
+  try {
+    $client = new SoapClient('http://list.hcpro.com:82/?wsdl',['login'=>'lperrin@blr.com','password'=>'.hcpro.']);
+    $members = $client->SelectMembers(["ListName=$list","EmailAddress={$email}"]);
+    $subscribed = false;
+    if(is_array($members)) {
+      foreach($members as $member)  {
+        if($member->MemberStatus != 'unsub') $subscribed = true;
+      }
+    }
+   return $subscribed;
+ } catch( Exception $e) {}
+ return null;
+}

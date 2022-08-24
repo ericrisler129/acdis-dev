@@ -1,0 +1,7 @@
+name = BLR Sample Signup
+description = "Form to be displayed on the free sample signup page"
+package = Custom
+version = "1.0"
+core = 7.x
+
+dependencies[] = blr_webauth

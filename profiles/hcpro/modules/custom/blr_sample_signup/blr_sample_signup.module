@@ -1,0 +1,391 @@
+<?php
+
+/**
+ * @file
+ * BLR free samples sign up form
+ */
+
+module_load_include('inc', 'memberbase', 'memberbase');
+
+/**
+ * Implements hook_menu().
+ */
+
+function blr_sample_signup_menu() {
+  $items = array();
+
+  $items['admin/config/system/blr-sample-signup'] = array(
+    'title' => 'BLR Free Sample Signup',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('blr_sample_signup_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['signup-confirmation'] = array(
+    'title' => 'Success! Thank You for Registering!',
+    'page callback' => '_signup_confirmation',
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function blr_sample_signup_block_info() {
+  $blocks = array();
+
+  $blocks['blr_sample_signup_widget'] = array(
+    'info' => t('BLR Free Sample Signup Form'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function blr_sample_signup_block_view($block_name = '') {
+  if ($block_name == 'blr_sample_signup_widget') {
+
+    $content = drupal_get_form('blr_sample_signup_signup_form');
+
+    $block = array(
+      'subject' => '<p><span>Tell Us</span> About Yourself for Access to FREE Content!</p>',
+      'content' => $content,
+    );
+
+    return $block;
+  }
+}
+
+function _signup_confirmation() {
+  $content['confirmation'] = array(
+    '#markup' => "<p>Thank you for registering. You can now log into the site with your username and password to access our free articles! For complete access to the content offered through ACDIS.org, please purchase a subscription to the site.</p>"
+  );
+
+  return $content;
+}
+
+/**
+ * @param $node
+ * @param $form_state
+ * @return mixed
+ *
+ * Administration form
+ */
+
+function blr_sample_signup_form($node, &$form_state) {
+  $form['blr_sample_signup_tracking_code'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('blr_sample_signup_tracking_code', ''),
+    '#title' => t('Lead Tracking Code'),
+    '#required' => TRUE,
+    '#description' => t('ie.. EN323286'),
+  );
+
+  $form['blr_sample_signup_free_rid'] = array(
+    '#type' => 'select',
+    '#options' => user_roles(TRUE),
+    '#default_value' => variable_get('blr_sample_signup_free_rid', DRUPAL_AUTHENTICATED_RID),
+    '#title' => t('Free Role'),
+    '#required' => TRUE,
+    '#description' => t('Select the role that will be assigned to free accounts.'),
+  );
+
+  $form['blr_sample_signup_free_plan_name'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('blr_sample_signup_free_plan_name', ''),
+    '#title' => t('Webauth Free Plan Name'),
+    '#required' => TRUE,
+    '#description' => t('ie.. JustCoding.com Free'),
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * @param $node
+ * @param $form_state
+ * @return mixed
+ *
+ * Booking form
+ */
+
+/***
+ * @return array
+ */
+function blr_sample_signup_signup_form() {
+  $form = array();
+  $job_level = blr_sample_signup_get_job_level_values();
+  $job_responsibilities = blr_sample_signup_get_job_responsibility_values();
+  $org_types = blr_sample_signup_get_org_type_values();
+
+  $form['Email'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Email',
+    '#required' => true
+  );
+
+  $form['Title'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Title',
+    '#required' => true
+  );
+
+  $form['Organization'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Organization',
+    '#required' => true
+  );
+
+  $form['OrgTypeCode'] = array(
+    '#type' => 'select',
+    '#title' => 'Organization Type',
+    '#options' => $org_types,
+    '#required' => true,
+    '#description' => t('Which of the above best describes your organization?'),
+  );
+
+  $form['JobLevelCode'] = array(
+    '#type' => 'select',
+    '#title' => 'Job Level',
+    '#options' => $job_level,
+    '#required' => true,
+    '#description' => t('Which of the above best describes your position level?'),
+  );
+
+  $form['JobResponsibilityCode'] = array(
+    '#type' => 'select',
+    '#title' => 'Job Responsibilities',
+    '#options' => $job_responsibilities,
+    '#required' => true,
+    '#description' => t('Which of the above best describes your position function?'),
+  );
+
+  $form['FirstName'] = array(
+    '#type' => 'textfield',
+    '#title' => 'First Name',
+    '#required' => true
+  );
+
+  $form['LastName'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Last Name',
+    '#required' => true
+  );
+
+  $form['Address'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Address',
+    '#required' => true
+  );
+
+  $form['City'] = array(
+    '#type' => 'textfield',
+    '#title' => 'City',
+    '#required' => true
+  );
+
+  $form['State'] = array(
+    '#type' => 'select',
+    '#title' => 'State',
+    '#options' => // array(
+      array('AL', 'AK', 'AS', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FM', 'FL', 'GA', 'GU', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MH', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'MP', 'OH', 'OK', 'OR', 'PW', 'PA', 'PR', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VI', 'VA', 'WA', 'WV', 'WI', 'WY', 'AE', 'AA', 'AP')
+  ,
+    '#required' => true
+  );
+
+  $form['Zip'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Zip',
+    '#required' => true
+  );
+
+  $form['Phone'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Phone',
+    '#required' => true
+  );
+
+  $form['AccountInfo'] = array(
+    '#type' => 'markup',
+    '#markup' => '<strong>New Account Information</strong>',
+    '#prefix' => '<div class="form-markup">',
+    '#suffix' => '</div>',
+  );
+
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Username',
+    '#required' => true
+  );
+
+  $form['pass'] = array(
+    '#type' => 'password_confirm',
+    '#required' => true
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Get Access',
+  );
+
+  $form['EmailSubIdList'] = array(
+    '#type' => 'hidden',
+    '#value' => '2270, 2290',
+  );
+
+  $form['PrimaryMarketCode'] = array(
+    '#type' => 'hidden',
+    '#value' => 'M1_CDI',
+  );
+
+  return $form;
+}
+
+/***
+ * @param $form
+ * @param $form_state
+ */
+function blr_sample_signup_signup_form_validate($form, &$form_state) {
+  $username = $form_state['values']['name'];
+  $email = $form_state['values']['Email'];
+
+  user_validate_name($username);
+  user_validate_mail($email);
+
+  if (blr_webauth_does_user_exist($username)) {
+    form_set_error('[values][name]', t('This username is already taken.'));
+  } elseif (blr_webauth_does_email_exist($email)) {
+    form_set_error('[values][name]', t('This email address is already taken.'));
+  }
+}
+
+/***
+ * @param $form
+ * @param $form_state
+ */
+function blr_sample_signup_signup_form_submit($form, &$form_state) {
+  blr_sample_signup_add_member($form, $form_state);
+  blr_sample_signup_create_lead($form, $form_state);
+  $form_state['redirect'] = '/signup-confirmation';
+}
+
+/***
+ * @param $form
+ * @param $form_state
+ * @return bool
+ */
+function blr_sample_signup_add_member($form, &$form_state) {
+  $username = $form_state['values']['name'];
+  $password = $form_state['values']['pass'];
+  $email = $form_state['values']['Email'];
+  $firstName = $form_state['values']['FirstName'];
+  $lastName = $form_state['values']['LastName'];
+  $company = $form_state['values']['Organization'];
+
+  try {
+    $free_plan_id = blr_webauth_get_plan_id(variable_get('blr_sample_signup_free_plan_name'));
+    blr_webauth_create_user($username, $email, $password, $free_plan_id);
+  } catch (Exception $e) {
+    watchdog('blr_sample_signup', $e->getMessage(), null, WATCHDOG_ERROR);
+    return false;
+  }
+}
+
+/***
+ * @param $form
+ * @param $form_state
+ */
+function blr_sample_signup_create_lead($form, &$form_state) {
+  $ns="http://webservice.blr.com/services/";
+  $url = "http://blr.webservices.hcpro.com/marketing/LeadService.svc?wsdl";
+
+  try {
+    $client = new SoapClient($url,array('trace'=>1));
+    $auth = new stdClass;
+    $auth->Password = new SoapVar("F0rt1sTN", XSD_STRING, NULL, NULL, "Password", $ns);
+    $auth->Username = new SoapVar("Fort1sTN", XSD_STRING, NULL, NULL, "Username", $ns);
+    $authvalues = new SoapVar($auth, SOAP_ENC_OBJECT,null,$ns,null,$ns);
+    $login = new SOAPHeader($ns, 'Credentials', $authvalues,false);
+    $client->__setSOAPHeaders(array($login));
+
+    $lead = new stdClass;
+    foreach(array_keys($form) as $field)
+      if(isset($form_state['values'][$field]))
+        $lead->$field = $form_state['values'][$field];
+    $lead->TrackingCode = variable_get('blr_sample_signup_tracking_code');
+
+    $saveResponse=$client->SaveLead(array("lead" => $lead,"DataLocation" => "Sql"));
+    watchdog('leads','Save lead success. request:'.htmlspecialchars($client->__getLastRequest()).' response:'.$saveResponse->SaveLeadResult);
+  } catch (Exception $e) {
+    watchdog('leads',"Failed to save lead. request:".htmlspecialchars($client->__getLastRequest()). " response:".htmlspecialchars($client->__getLastResponse()));
+  }
+}
+
+function blr_sample_signup_get_job_level_values() {
+  $endpoint = "http://webservice.blr.com/marketing.webServices/JobLevel.svc?wsdl";
+  $client = new SoapClient($endpoint, array('trace' => 1));
+  $values = [];
+
+  try {
+    if (!$client) throw new Exception("Unable to retrieve data from job levels service.  Response: " . $client->__getLastResponse());
+    $result = $client->GetJobLevels();
+    if (empty($result->GetJobLevelsResult)) throw new Exception("No data provided by job levels service.  Response: " . $client->__getLastResponse());
+
+    foreach ($result->GetJobLevelsResult->JobLevelModel as $item) {
+      $values[$item->JobLevelCode] = $item->Name;
+    }
+
+    return $values;
+  } catch (Exception $e) {
+    watchdog('free_reg_service', $e->getMessage());
+    return FALSE;
+  }
+}
+
+function blr_sample_signup_get_job_responsibility_values() {
+  $endpoint = "http://webservice.blr.com/marketing.webServices/JobResponsibility.svc?wsdl";
+  $client = new SoapClient($endpoint, array('trace' => 1));
+  $values = [];
+
+  try {
+    if (!$client) throw new Exception("Unable to retrieve data from job responsibility service.  Response: " . $client->__getLastResponse());
+    $result = $client->GetJobResponsibilities(['parentCompanyID' => 2]);
+    if (empty($result->GetJobResponsibilitiesResult)) throw new Exception("No data provided by job responsibility service.  Response: " . $client->__getLastResponse());
+
+    foreach ($result->GetJobResponsibilitiesResult->JobResponsibilityModel as $item) {
+      $values[$item->JobResponsibiltyCode] = $item->Name;
+    }
+
+    return $values;
+  } catch (Exception $e) {
+    watchdog('free_reg_service', $e->getMessage());
+    return FALSE;
+  }
+}
+
+function blr_sample_signup_get_org_type_values() {
+  $endpoint = "http://webservice.blr.com/marketing.webServices/OrgType.svc?wsdl";
+  $client = new SoapClient($endpoint, array('trace' => 1));
+  $values = [];
+
+  try {
+    if (!$client) throw new Exception("Unable to retrieve data from org type service.  Response: " . $client->__getLastResponse());
+    $result = $client->GetOrgTypes();
+    if (empty($result->GetOrgTypesResult)) throw new Exception("No data provided by org type service.  Response: " . $client->__getLastResponse());
+
+    foreach ($result->GetOrgTypesResult->OrgTypeModel as $item) {
+      $values[$item->OrgTypeCode] = $item->Name;
+    }
+
+    return $values;
+  } catch (Exception $e) {
+    watchdog('free_reg_service', $e->getMessage());
+    return FALSE;
+  }
+}

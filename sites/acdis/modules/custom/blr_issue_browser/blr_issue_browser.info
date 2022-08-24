@@ -1,0 +1,5 @@
+name = BLR Issue Browser
+description = Block implementation of the Issue Browser navigation
+package = Custom
+core = 7.x
+files[] = blr_issue_browser.module

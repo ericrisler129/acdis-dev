@@ -1,0 +1,30 @@
+.block-header-menu {
+  @include clearfix;
+  margin: 0 0 12px;
+
+  .menu {
+    @include clearfix;
+    padding: 0;
+    float: right;
+
+    .leaf {
+      list-style: none;
+      float: left;
+
+      &:last-child {
+        a {
+          border: none;
+        }
+      }
+
+      a {
+        font-size: 0.929em;
+        line-height: 0.929em;
+        display: block;
+        padding: 0 5px;
+        border-right: 1px solid #FFFFFF;
+        color: #ffffff;
+      }
+    }
+  }
+}

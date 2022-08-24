@@ -1,0 +1,44 @@
+.view-acdis-faq.view-display-id-page{
+  .view-content{
+    .views-row{
+	  margin-bottom: 10px;
+	  margin-left: -25px
+	}
+  }
+}
+
+.collapse-tile{
+  color: #701370;
+  cursor: pointer;
+  padding-left: 20px;
+
+  .field-content{
+    display: list-item;
+  }
+}
+
+.collapse-body {
+  overflow: hidden;
+  display: none;
+  padding-top: 10px;
+  padding-left: 40px;
+  margin-bottom: 24px;
+}
+
+.view-acdis-faq li {
+  list-style-type: none;
+}
+
+.views-field.views-field-nothing {
+  display: inline;
+}
+
+.views-field.views-field-title.collapse-tile {
+  display: inline-block;
+  padding-bottom: 15px;
+  padding-left: 0;
+}
+.view-acdis-faq.view-display-id-page .view-content .views-row {
+    margin-bottom: -13px;
+    margin-left: -25px;
+}

@@ -1,0 +1,5 @@
+name = BLR Issue Field
+description = A field containing Volume, Issue and Article Position parts
+package = Custom
+core = 7.x
+files[] = blr_issue_field.module

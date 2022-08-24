@@ -1,0 +1,23 @@
+<?php
+
+/**
+* Implementation of hook_install().
+*/
+function blr_sample_signup_install() {
+  drupal_set_message(t('BLR sample signup has been successfully installed.'));
+}
+
+/**
+ * Implementation of hook_enable().
+ */
+function blr_sample_signup_enable() {
+  drupal_set_message(t('BLR sample signup has been successfully enabled.'));
+  drupal_set_message(t('You must set the lead tracking code on the <a href="@url">BLR sample signup configuration page</a>.', array('@url' => url('admin/config/system/blr-sample-signup'))));
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function blr_sample_signup_uninstall() {
+  variable_del('blr_sample_signup_tracking_code');
+}

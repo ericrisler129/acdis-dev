@@ -1,0 +1,22 @@
+.block-featured-resources {
+  .views-row {
+    position: relative;
+    padding: 0 0 10px 25px;
+
+    .views-field-php {
+      position: absolute;
+      left: 0;
+      padding: 0;
+    }
+
+    .views-field-title {
+      font-weight: $primaryFontWeightMed;
+    }
+  }
+}
+.page-cdi-week {
+   .view-id-cdi_week_home .view-content .views-row{
+      padding-bottom: 0px;
+      margin-bottom: 20px;
+    }
+ }

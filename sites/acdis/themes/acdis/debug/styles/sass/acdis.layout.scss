@@ -1,0 +1,171 @@
+@import "toolkit";
+@import "variables/**/*";
+
+.style-btn-green{
+img{
+display:none;
+}
+	a{
+		 transition: all 0.3s ease;
+		display: inline-block;
+		padding: 5px 30px;
+		border: 2px solid #56b75b;
+		background-color: #56b75b;
+		color: #56b75b;
+		width: 150px;
+		overflow: hidden;
+		height: 39px;
+		margin: 10px 0px;
+		position: relative;
+		&:active,
+		&:focus,
+		&:hover{
+			background-color: #7ac67e;
+			color: #7ac67e;
+		}
+		&:after{
+			content: 'Download';
+			display: inline-block;
+			color: #fff;
+			position: absolute;
+			top: 7px;
+			left: 28%;
+		}
+	}
+}
+
+.max-width {
+  max-width: $siteWidth;
+  margin: auto;
+}
+
+.l-site-width {
+  @extend .max-width;
+}
+
+.l-header {
+  @include clearfix;
+
+  .l-branding {
+    float: left;
+  }
+
+  .l-region--header {
+    float: right;
+  }
+}
+
+.l-navigation {
+
+}
+
+.l-section-header {
+  @extend .max-width;
+  margin: $gutterSize auto 0;
+
+  .section-title-wrapper {
+  }
+}
+
+.l-masthead {
+  @extend .max-width;
+
+  .l-region--masthead {
+    //@include clearfix;
+    margin: 0 0 10px;
+
+    .front & {
+      margin-bottom: $gutterSize;
+    }
+  }
+}
+
+.l-main {
+  @extend .max-width;
+  @include clearfix;
+  padding: $gutterSize;
+  margin: 0 auto $gutterSize;
+
+  .l-content {
+    padding: 0 0 $gutterSize;
+    clear: both;
+
+    .front & {
+      padding: 0;
+    }
+
+    .has-one-sidebar.has-sidebar-first & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(17, 8);
+      }
+
+      @include breakpoint ($tab) {
+        @include grid-span(19, 6);
+      }
+    }
+
+    .has-one-sidebar.has-sidebar-second & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(17);
+      }
+    }
+
+    .has-two-sidebars & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(17, 8);
+      }
+
+      @include breakpoint ($tab) {
+        @include grid-span(12, 6);
+      }
+    }
+  }
+
+  .l-region--sidebar-first {
+    @include breakpoint($tabSmall) {
+      @include grid-span(7);
+    }
+
+    @include breakpoint($tab) {
+      @include grid-span(5);
+    }
+  }
+
+  .l-region--sidebar-second {
+    .has-one-sidebar & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(7, 18);
+      }
+    }
+
+    .has-two-sidebars & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(7);
+        clear: left;
+      }
+
+      @include breakpoint($tab) {
+        @include grid-span(7, 18);
+      }
+    }
+  }
+
+  .tabs--primary,
+  .messages {
+    clear: both;
+  }
+}
+
+.l-content-bottom {
+  clear: both;
+}
+
+.l-footer-top {
+  @include clearfix;
+  background-color: #1c1c1c;
+  padding: 14px;
+}
+
+.hcpro-logo {
+  max-width: 200px;
+}

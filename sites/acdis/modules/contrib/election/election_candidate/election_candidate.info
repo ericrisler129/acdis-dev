@@ -1,0 +1,25 @@
+name = Election Candidate
+description = Allows elections to have candidates.
+core = 7.x
+package = Election
+dependencies[] = election
+dependencies[] = election_post
+dependencies[] = views_bulk_operations
+dependencies[] = name
+dependencies[] = email
+files[] = election-candidate-type.inc
+files[] = election-candidate.controller.inc
+files[] = election-candidate-type.controller.inc
+files[] = election-candidate-type-ui.controller.inc
+files[] = views/handlers/election_candidate_views_handler_field_candidate_category.inc
+files[] = views/handlers/election_candidate_views_handler_field_link.inc
+files[] = views/handlers/election_candidate_views_handler_field_link_edit.inc
+files[] = views/handlers/election_candidate_views_handler_field_link_nominate.inc
+files[] = views/handlers/election_candidate_views_handler_filter_published.inc
+configure = admin/config/election/candidate-types
+
+; Information added by Drupal.org packaging script on 2019-08-15
+version = "7.x-1.5"
+core = "7.x"
+project = "election"
+datestamp = "1565892488"

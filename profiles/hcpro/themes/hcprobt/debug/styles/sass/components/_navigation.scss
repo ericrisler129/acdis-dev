@@ -1,0 +1,170 @@
+.l-region--navigation {
+  @include clearfix;
+}
+
+.block-main-nav {
+  font-size: $FSdefault;
+  font-weight: $primaryFontWeightMed;
+  float: left;
+
+  .hamburger {
+    padding: 0 0 0 2px;
+    cursor: pointer;
+    color: #FFFFFF;
+
+    &:hover {
+      & + .menu {
+        display: block;
+      }
+    }
+
+    @include breakpoint($tab) {
+      display: none;
+    }
+  }
+
+  .menu {
+    @include clearfix;
+    padding: 0;
+    margin: 0;
+
+    li {
+      @include transition(all 0.3s ease);
+      list-style: none;
+      float: left;
+      white-space: nowrap;
+
+      &.active-trail,
+      &:hover {
+        background-color: #000000;
+      }
+
+      a,
+      .nolink {
+        line-height: 32px;
+        padding: 0 10px;
+        color: #ffffff;
+
+        &:active,
+        &:hover,
+        &:visited,
+        &.active {
+          color: #ffffff;
+        }
+      }
+
+      &.nav-icon > a {
+        font-family: fontawesome;
+      }
+
+      &.nav-blue {
+        background-color: $buttonBlue;
+
+        &.active-trail,
+        &:hover {
+          background-color: #ffffff;
+
+          a {
+            color: $buttonBlue;
+          }
+        }
+      }
+
+      &.nav-green {
+        background-color: $buttonGreen;
+
+        &.active-trail,
+        &:hover {
+          background-color: #ffffff;
+
+          a {
+            color: $buttonGreen;
+          }
+        }
+      }
+
+      &.nav-red {
+        background-color: $buttonRed;
+
+        &.active-trail,
+        &:hover {
+          background-color: #ffffff;
+
+          a {
+            color: $buttonRed;
+          }
+        }
+      }
+
+      .menu {
+        font-size: 0.875em;
+        font-weight: normal;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 5px -3px;
+        display: none;
+        position: absolute;
+        background-color: $navBG;
+        z-index: 1000000;
+
+        li {
+          float: none;
+          white-space: nowrap;
+
+          a {
+            display: block;
+          }
+        }
+      }
+    }
+  }
+
+  &.block--system-main-menu {
+    & > .menu {
+      position: absolute;
+      background-color: $navBG;
+      display: none;
+      z-index: 1000;
+
+      &:hover {
+        display: block;
+      }
+
+      li {
+        width: 100%;
+
+        .menu {
+          position: relative;
+          overflow: hidden;
+
+          a {
+            padding-left: 30px;
+          }
+        }
+      }
+
+      @include breakpoint($tab) {
+        display: block !important;
+        position: relative !important;
+
+        li {
+          width: auto !important;
+
+          &:hover {
+            .menu {
+              display: block;
+            }
+          }
+
+          .menu {
+            position: absolute;
+            height: auto;
+
+            a {
+              padding-left: 10px;
+            }
+          }
+        }
+      }
+    }
+  }
+}

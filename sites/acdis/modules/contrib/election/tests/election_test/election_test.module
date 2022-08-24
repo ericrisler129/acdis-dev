@@ -1,0 +1,40 @@
+<?php
+
+/**
+ * @file
+ * Module file for election_test.
+ *
+ * Hook implementations are tested in ElectionCrudTestCase.
+ */
+
+/**
+ * Implements hook_election_nominations_open().
+ */
+function election_test_election_nominations_open($election_id, $scheduled) {
+  $variable = variable_get('election_test');
+  variable_set('election_test', $variable . ' election_test_election_nominations_open ' . $election_id . '-' . $scheduled);
+}
+
+/**
+ * Implements hook_election_nominations_close().
+ */
+function election_test_election_nominations_close($election_id, $scheduled) {
+  $variable = variable_get('election_test');
+  variable_set('election_test', $variable . ' election_test_election_nominations_close ' . $election_id . '-' . $scheduled);
+}
+
+/**
+ * Implements hook_election_voting_open().
+ */
+function election_test_election_voting_open($election_id, $scheduled) {
+  $variable = variable_get('election_test');
+  variable_set('election_test', $variable . ' election_test_election_voting_open ' . $election_id . '-' . $scheduled);
+}
+
+/**
+ * Implements hook_election_voting_close().
+ */
+function election_test_election_voting_close($election_id, $scheduled) {
+  $variable = variable_get('election_test');
+  variable_set('election_test', $variable . ' election_test_election_voting_close ' . $election_id . '-' . $scheduled);
+}

@@ -1,0 +1,34 @@
+.block-filter {
+  position: relative;
+
+  .block__content {
+    padding: $gutterSize 0 !important;
+  }
+
+  .views-exposed-widget {
+    padding: 0;
+    float: none;
+  }
+
+  .form-type-bef-link,
+  li.inactive {
+    a {
+      font-weight: $primaryFontWeightMed;
+      display: block;
+      padding: 3px $gutterSize;
+      color: $copy;
+
+      &.active,
+      &:hover {
+        color: #ffffff;
+        background-color: $headerBG;
+      }
+    }
+  }
+
+  .views-submit-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+}

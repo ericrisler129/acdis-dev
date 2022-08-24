@@ -1,0 +1,12 @@
+name = hcpro_ds_view_modes
+description = Shared view modes for Display Suite
+core = 7.x
+package = HCPro Entities
+version = 7.x-1.0
+dependencies[] = ctools
+dependencies[] = ds
+features[ctools][] = ds:ds:1
+features[ds_view_modes][] = favorites
+features[ds_view_modes][] = samples
+features[ds_view_modes][] = teaser_short
+features[features_api][] = api:2

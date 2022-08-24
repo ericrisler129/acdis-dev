@@ -1,0 +1,29 @@
+.countdown-prefix,
+.countdown-suffix {
+  font-weight: bold;
+}
+
+.countdown-timer .time-section {
+  text-align: center;
+  display: inline-block;
+  width: 24.25%;
+  padding: 5px;
+  margin-right: 1%;
+  background-color: #F2F2F2;
+}
+
+.countdown-timer .time-section:last-child {
+  margin: 0;
+}
+
+.countdown-timer .time-display {
+  font-size: 1.500em;
+  font-weight: bold;
+  display: block;
+}
+
+.countdown-timer .time-label {
+  font-size: 0.625em;
+  font-weight: bold;
+  display: block;
+}

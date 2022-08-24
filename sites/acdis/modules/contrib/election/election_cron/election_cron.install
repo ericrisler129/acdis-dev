@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * Install file for the election_cron module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function election_cron_install() {
+  // Track the last time election_cron() ran.
+  variable_set('election_cron_last', REQUEST_TIME);
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function election_cron_uninstall() {
+  variable_del('election_cron_last');
+}

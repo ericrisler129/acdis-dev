@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the block_title_icon module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+
+function block_title_icon_install() {
+  $schema['block'] = array();
+  block_title_icon_schema_alter($schema);
+  foreach ($schema['block']['fields'] as $field => $spec) {
+    if (db_field_exists('block', $field)) {
+      watchdog('system', 'Module install: Attempt to recreate field: "%field", when it already exists.', array('%field' => $field), WATCHDOG_WARNING);
+    }
+    else {
+      db_add_field('block', $field, $spec);
+    }
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+
+function block_title_icon_uninstall() {
+  $schema['block'] = array();
+  block_title_icon_schema_alter($schema);
+  foreach ($schema['block']['fields'] as $field => $specs) {
+    db_drop_field('block', $field);
+  }
+}
+
+
+/**
+ * Implements hook_schema_alter().
+ */
+
+function block_title_icon_schema_alter(&$schema) {
+  if (isset($schema['block'])) {
+    $schema['block']['fields']['icon_html'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'HTML string for the block icon.',
+    );
+  }
+}
+

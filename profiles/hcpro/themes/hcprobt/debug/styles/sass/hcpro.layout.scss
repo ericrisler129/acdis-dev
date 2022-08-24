@@ -1,0 +1,116 @@
+@import "toolkit";
+@import "variables/**/*";
+
+.max-width {
+  max-width: $siteWidth;
+  margin: auto;
+}
+
+.l-site-width {
+  @extend .max-width;
+}
+
+.l-header {
+  @include clearfix;
+
+  .l-branding {
+    float: left;
+  }
+
+  .l-region--header {
+    float: right;
+  }
+}
+
+.l-navigation {
+
+}
+
+.l-masthead {
+  @extend .max-width;
+  margin: 0 0 10px;
+
+  .front & {
+    margin-bottom: $gutterSize;
+  }
+
+  .l-region--masthead {
+    //@include clearfix;
+  }
+}
+
+.l-main {
+  @extend .max-width;
+  @include clearfix;
+  padding: $gutterSize;
+  margin: $gutterSize auto;
+
+  .l-content {
+    padding: 0 0 $gutterSize;
+    clear: both;
+
+    .front & {
+      padding: 0;
+    }
+
+    .has-one-sidebar.has-sidebar-first & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(9, 4);
+      }
+    }
+
+    .has-one-sidebar.has-sidebar-second & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(8.5);
+      }
+    }
+
+    .has-two-sidebars & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(9, 4);
+      }
+
+      @include breakpoint ($tab) {
+        @include grid-span(5.5, 4);
+      }
+    }
+  }
+
+  .l-region--sidebar-first {
+    @include breakpoint($tabSmall) {
+      @include grid-span(3);
+    }
+  }
+
+  .l-region--sidebar-second {
+    .has-one-sidebar & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(3.5, 9.5);
+      }
+    }
+
+    .has-two-sidebars & {
+      @include breakpoint($tabSmall) {
+        @include grid-span(3);
+        clear: left;
+      }
+
+      @include breakpoint($tab) {
+        @include grid-span(3.5, 9.5);
+      }
+    }
+  }
+
+  .tabs--primary,
+  .messages {
+    clear: both;
+  }
+}
+
+.l-content-bottom {
+  clear: both;
+}
+
+.l-footer {
+
+}

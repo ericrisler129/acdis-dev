@@ -1,0 +1,5 @@
+name = UMD
+description = Logs traffic to Usage Marketing Data
+core = 7.x
+configure = admin/settings/umd
+#dependencies[] = chain_menu_access

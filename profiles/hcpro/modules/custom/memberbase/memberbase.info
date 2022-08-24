@@ -1,0 +1,5 @@
+name = Memberbase
+description = Provides external Login via Membership base
+core = 7.x
+configure = admin/settings/memberbase
+dependencies[] = chain_menu_access

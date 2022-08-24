@@ -1,0 +1,19 @@
+.node {
+  &.node--forum-feed {
+    margin: 0 0 10px;
+    padding: 0 0 10px;
+    border-bottom: 1px solid $hr;
+
+    .lock-icon {
+      display: none;
+    }
+
+    .field-name-field-author,
+    .field-name-post-date {
+      font-size: $FSsmall;
+      display: inline-block;
+      margin: 0 10px 0 0;
+      color: #cccccc;
+    }
+  }
+}

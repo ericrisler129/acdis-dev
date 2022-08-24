@@ -1,0 +1,68 @@
+/* Required Imports */
+@import "singularitygs";
+@import "breakpoint";
+
+/*** Colors ***/
+/* Colors - Text */
+$copy: #000000;
+$nodeTitles: $copy;
+$nodeTitlesLink: #008ed8;
+$articleLink: $nodeTitlesLink;
+$nonArticleLink: #445b72;
+
+/* Colors - Background */
+$bodyBG: #f2f2f2;
+$contentBG: #ffffff;
+$headerBG: #0a8282;
+$navBG: #3b393a;
+$footerBG: #3b393a;
+$tableEvenBG: $bodyBG;
+$infobox: $bodyBG;
+
+/* Colors - Forms */
+$inputBorder: #cccccc;
+$placeholderText: #445b72;
+$formLabel: #666666;
+
+/* Colors - Buttons */
+$buttonGreen: #56b75b;
+$buttonRed: #c82126;
+$buttonBlue: #57bfdd;
+$buttonYellow: #f0ad42;
+$buttonBlack: #262626;
+$buttonGrey: $navBG;
+
+/* Typography */
+$primaryFont: 'Open Sans', sans-serif;
+$primaryFontWeightMed: 600;
+$primaryFontWeightBold: 700;
+
+/* Master Font sizes */
+// Set body element font size to 87.5%
+$FSbase: 1em; //14
+$FSextraSmall: 0.714em; //10
+$FSsmall: 0.857em; //12
+$FSdefault: 1.143em; //16
+$FSlarge: 1.286em; //18
+$FSextraLarge: 1.429em; //20
+
+/* Element font sizes */
+$FSsearchPlaceholder: $FSsmall;
+$FSnavigation: $FSdefault;
+$FSnodeTitles: $FSlarge;
+$FSheading: $FSextraLarge;
+
+/* Grid Setup */
+@include add-grid(12);
+@include add-gutter(20px);
+$gutterSize: gutter-span();
+
+/* Layout */
+$siteWidth: 1100px;
+
+/* Breakpoints */
+$mobileSmall: 480px;
+$mobile: 640px;
+$tabSmall: 768px;
+$tab: 1024px;
+$desk: $siteWidth;

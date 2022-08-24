@@ -1,0 +1,47 @@
+.block-sample-signup {
+  max-width: 530px;
+  margin: 0 auto;
+
+  form {
+    .form-item {
+      &.form-item-Email,
+      &.form-item-Organization,
+      &.form-item-FirstName,
+      &.form-item-LastName,
+      &.form-item-City,
+      &.form-item-Phone {
+        @include breakpoint($tabSmall) {
+          max-width: 47%;
+          float: left;
+        }
+      }
+
+      &.form-item-Email,
+      &.form-item-FirstName,
+      &.form-item-City,
+      &.form-item-State {
+        @include breakpoint($tabSmall) {
+          margin-right: 6%;
+        }
+      }
+
+      &.form-item-State {
+        @include breakpoint($tabSmall) {
+          width: 20.5%;
+          float: left;
+        }
+      }
+
+      &.form-item-Zip {
+        @include breakpoint($tabSmall) {
+          max-width: 20.5%;
+          float: left;
+        }
+      }
+    }
+
+    .form-markup {
+      clear: both;
+    }
+  }
+}

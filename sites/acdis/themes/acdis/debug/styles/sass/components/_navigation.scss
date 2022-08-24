@@ -1,0 +1,10 @@
+.block-main-nav {
+  .menu {
+    li {
+      &.active-trail,
+      &:hover {
+        //background-color: $brand1;
+      }
+    }
+  }
+}

@@ -1,0 +1,99 @@
+.acdis-panels-cdi-week {
+  .panel-col-top,
+  .panel-col-bottom,
+  .panel-col-first,
+  .panel-col-last {
+    width: 100%;
+    float: none;
+
+    .inside {
+      margin: 0;
+    }
+  }
+
+  @include breakpoint($tabSmall) {
+    .panel-col-first {
+      @include grid-span(11, 1, 17);
+    }
+
+    .panel-col-last {
+      @include grid-span(6, 12, 17);
+    }
+  }
+
+  .panel-col-top {
+    .inside {
+      margin: 0 0 $gutterSize;
+
+      .title-wrapper {
+        display: none;
+      }
+
+      .flexslider {
+        margin: 0 0 50px;
+
+        .flex-control-nav {
+          a {
+            width: 15px;
+            height: 15px;
+
+            &.flex-active {
+              background-color: $brand1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .block-toolkit {
+    .block__content {
+      @include clearfix;
+    }
+
+    .toolkit-links {
+      float: left;
+      width: 30%;
+      margin: 0 4% 0 0;
+
+      p {
+        margin: 0;
+      }
+    }
+
+    .countdown-wrapper {
+      float: left;
+      width: 64%;
+    }
+  }
+
+  .form-sponsorship {
+    .form-item {
+      width: 100%;
+
+      @include breakpoint($tab) {
+        float: left;
+        width: 48%;
+
+        &:nth-child(odd) {
+          margin-right: 4%;
+        }
+      }
+    }
+
+    .form-actions {
+      text-align: right;
+      clear: both;
+      margin: 0;
+
+      .webform-submit {
+        @include button($buttonGreen);
+      }
+    }
+  }
+}
+.block-masthead {
+  .flexslider {
+    margin-bottom: 45px;
+ }
+}

@@ -1,0 +1,14 @@
+name = Election Export
+description = Export the results of an election (as an archive of .blt ballot files).
+core = 7.x
+package = Election
+dependencies[] = election
+dependencies[] = election_post
+dependencies[] = election_candidate
+dependencies[] = election_vote
+
+; Information added by Drupal.org packaging script on 2019-08-15
+version = "7.x-1.5"
+core = "7.x"
+project = "election"
+datestamp = "1565892488"

@@ -1,0 +1,6 @@
+name = BLR WebAuth
+description = Provides external Login via BLR WebAuth
+core = 7.x
+configure = admin/settings/webauth
+dependencies[] = chain_menu_access
+files[] = blr_webauth.oauth.inc

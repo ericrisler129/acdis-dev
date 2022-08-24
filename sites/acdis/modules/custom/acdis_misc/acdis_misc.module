@@ -1,0 +1,70 @@
+<?php
+
+function create_yourmembership_sso_link() {
+  $user = blr_webauth_get_profile();
+  if (empty($user)) return "http://jobs.acdis.org/home/index.cfm?site_id=22300";
+
+  $get = drupal_get_query_parameters();
+  $goto = isset($get['goto']) ? $get['goto'] : null;
+
+  $customer_id = $user['customers'][0]['id'];
+  $first_name = "";
+  $last_name = "";
+
+  if (isset($customer_id)) {
+    $addresses = blr_webauth_api_call("customers/{$customer_id}/addresses");
+
+    foreach ($addresses as $address) {
+      if ($address['set_as_profile_address'] === TRUE) {
+        $first_name = $address['first_name'];
+        $last_name = $address['last_name'];
+      }
+    }
+  }
+
+  $query = array(
+    "site_id" => "22300",
+    "cust_code" => "LPI414",
+    "first_name" => $first_name,
+    "last_name" => $last_name,
+    "email" => $user['email'],
+    "member_number" => $user['memberbase_id'],
+    "goto" => $goto,
+  );
+
+  $query = drupal_http_build_query($query);
+  $url = get_login_type($goto) . $query;
+
+  return $url;
+}
+
+function get_login_type($goto) {
+  if (strpos($goto, "/r/") !== FALSE) {
+    // Employer Login
+    return 'http://jobs.acdis.org/r/login/autologin.cfm?';
+  }
+
+  // Job Seeker Login
+  return 'http://jobs.acdis.org/c/login/autocreate.cfm?';
+}
+
+function acdis_misc_menu() {
+  $items['career-center/sso'] = [
+    'page callback' => '_career_center_menu_sso',
+    'access callback' => TRUE,
+  ];
+
+  return $items;
+}
+
+function _career_center_menu_sso() {
+  $get = drupal_get_query_parameters();
+  $goto = isset($get['goto']) ? $get['goto'] : null;
+
+  if (user_is_logged_in()) {
+    $sso_link = create_yourmembership_sso_link();
+    drupal_goto($sso_link);
+  } else {
+    drupal_goto("user/login", array('query' => array('goto' => $goto)));
+  }
+}

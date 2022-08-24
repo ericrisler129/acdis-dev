@@ -1,0 +1,177 @@
+.node {
+  &.node--local-chapter {
+    .field-name-local-chapter-menu {
+      > ul {
+        padding: 0;
+        margin: 0 0 15px;
+
+        > li {
+          list-style: none;
+
+          > a {
+            display: none;
+
+            + ul {
+              @include clearfix;
+              padding: 0;
+
+              li {
+                list-style: none;
+                float: left;
+
+                a {
+                  font-size: $FSdefault;
+                  font-weight: $primaryFontWeightMed;
+                  display: block;
+                  padding: 10px 20px;
+                  color: $util-grey;
+                  background-color: $brand3;
+                  border-left: 3px solid $util-grey;
+
+                  &.active,
+                  &:hover {
+                    border-color: $brand2;
+                    color: $copy;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .label-above {
+      @extend .section-heading;
+    }
+
+    .chapter-image {
+      @include breakpoint($mobile) {
+        display: inline-block;
+        vertical-align: middle;
+        width: 33%;
+      }
+    }
+
+    .field-name-body {
+      font-size: $FSdefault;
+
+      @include breakpoint($mobile) {
+        display: inline-block;
+        vertical-align: middle;
+        width: 67%;
+      }
+    }
+
+    .field-name-field-chapter-leaders {
+      @include clearfix;
+
+      .field-collection-item-field-chapter-leaders {
+        @include breakpoint($mobile) {
+          width: 49%;
+          float: left;
+
+          &:nth-child(even) {
+            margin: 0 2% 0 0;
+          }
+        }
+
+        .group-left {
+          width: 25%;
+          margin-right: 3%;
+        }
+
+        .group-right {
+          width: 72%;
+        }
+
+        .field-name-field-fc-body {
+          p {
+            margin: 0 0 5px;
+          }
+        }
+      }
+    }
+
+    .button {
+      a {
+        margin: 0 5px 0 0;
+      }
+
+      .facebook,
+      .linkedin {
+        width: 44px;
+        height: 44px;
+        text-indent: -9999px;
+        background: image-url("socialmedia.png") no-repeat 0 0 transparent;
+        display: inline-block;
+        vertical-align: middle;
+      }
+
+      .facebook {
+        background-position: -44px 0;
+      }
+
+      .linkedin {
+        background-position: -88px 0;
+      }
+
+      .button-green {
+        padding: 10px 30px;
+      }
+    }
+
+    & > .group-left,
+    & > .group-right {
+      width: 100%;
+
+      @include breakpoint($mobile) {
+        width: 50%;
+      }
+    }
+  }
+}
+
+.block-form-new-chapter {
+  h2 {
+    @extend .section-heading;
+  }
+
+  form {
+    @include clearfix;
+
+    @include breakpoint($mobile) {
+      .form-item {
+        width: 48%;
+        float: left;
+
+        &:nth-child(odd) {
+          margin-right: 4%;
+        }
+      }
+    }
+
+    .form-actions {
+      text-align: right;
+      clear: both;
+      margin: 0;
+
+      .webform-submit {
+        @include button($buttonGreen);
+      }
+    }
+  }
+}
+
+.section-heading {
+  font-size: 1.714em;
+  font-weight: $primaryFontWeightBold;
+  padding: 0 0 5px;
+  margin: 10px 0;
+  color: $brand1;
+  border-bottom: 1px solid $hr;
+}
+
+#map_trial {
+  display: none;
+}

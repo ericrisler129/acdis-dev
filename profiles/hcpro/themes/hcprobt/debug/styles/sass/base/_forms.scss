@@ -1,0 +1,57 @@
+.styled-form {
+  margin: 0 0 $gutterSize;
+
+  .block__title {
+    span {
+      color: #02735f;
+    }
+  }
+
+  form {
+    @include clearfix;
+    background-color: $bodyBG;
+    padding: 30px;
+
+    .form-item {
+      label {
+        font-weight: normal;
+        margin: 0 0 3px;
+        color: $formLabel;
+
+        .form-required {
+          display: none;
+        }
+      }
+
+      input {
+        height: 45px;
+        border: 1px solid $inputBorder;
+        max-width: 100%;
+        padding: 0 10px;
+      }
+
+      select {
+        height: 45px;
+        border: 1px solid $inputBorder;
+        max-width: 100%;
+        width: 100%;
+      }
+    }
+/*
+    .form-submit {
+      display: block;
+      clear: both;
+      float: right;
+      padding: 3px 30px;
+      background-color: $buttonBlack;
+      color: #ffffff;
+      border: none;
+
+      &:hover {
+        background-color: #ffffff;
+        color: $buttonBlack;
+      }
+    }
+    */
+  }
+}

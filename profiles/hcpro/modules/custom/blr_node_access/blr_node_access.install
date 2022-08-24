@@ -1,0 +1,73 @@
+<?php
+
+/**
+* Implementation of hook_install().
+*/
+function blr_node_access_install() {
+  drupal_set_message(t('BLR Node Access has been successfully installed.'));
+
+  // TODO: Add db entries for all existing content types with access enabled for all roles
+}
+
+/**
+ * Implements hook_schema().
+ */
+function blr_node_access_schema() {
+  $schema['blr_node_access'] = array(
+    'description' => 'BLR Node Access settings',
+    'fields' => array(
+      'node_type' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Node Type',
+      ),
+      'allowed_roles' => array(
+        'type' => 'blob',
+        'description' => 'Roles allowed access to this node type',
+      ),
+    ),
+    'primary key' => array('node_type'),
+  );
+
+  $schema['blr_node_access_node'] = array(
+    'description' => 'BLR Node Access settings - node level',
+    'fields' => array(
+      'entity_id' => array(
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Entity ID',
+      ),
+      'allowed_roles' => array(
+        'type' => 'blob',
+        'description' => 'Roles with access to this entity.',
+      ),
+    ),
+    'primary key' => array('entity_id'),
+  );
+
+  return $schema;
+}
+
+function blr_node_access_update_7000() {
+  $taxonomy_term = array(
+    'description' => 'BLR Node Access - Taxonomy Term',
+    'fields' => array(
+      'taxonomy_id' => array(
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Taxonomy Term ID',
+      ),
+      'allowed_roles' => array(
+        'type' => 'blob',
+        'description' => 'Roles allowed to access this taxonomy term',
+      ),
+    ),
+    'primary key' => array('taxonomy_id'),
+  );
+
+  db_create_table('blr_node_access_taxonomy_term', $taxonomy_term);
+}

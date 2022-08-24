@@ -1,0 +1,222 @@
+<?php
+
+/**
+ * Implements hook_field_info().
+ */
+function blr_volume_field_field_info() {
+  return array(
+    'volume' => array(
+      'label' => t('Volume'),
+      'description' => t('Stores publication, volume, issue, article position values'),
+      'default_widget' => 'volume_simple',
+      'default_formatter' => 'volume_default',
+    )
+  );
+}
+
+/**
+ * Implements hook_schema().
+ */
+function blr_volume_field_field_schema($field) {
+  $schema = array();
+
+  if ($field['type'] == 'volume') {
+    $schema['columns']['publication'] = array(
+      'type' => 'int',
+      'not null' => FALSE,
+    );
+
+    $schema['columns']['volume'] = array(
+      'type' => 'int',
+      'not null' => FALSE,
+    );
+
+    $schema['columns']['issue'] = array(
+      'type' => 'int',
+      'not null' => FALSE,
+    );
+
+    $schema['columns']['position'] = array(
+      'type' => 'int',
+      'not null' => FALSE,
+    );
+  }
+
+  return $schema;
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function blr_volume_field_field_is_empty($item, $field) {
+  if ($field['type'] == 'volume') {
+    if (empty($item['publication']) || empty($item['volume']) || empty($item['issue']) || empty($item['position'])) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function blr_volume_field_field_widget_info() {
+  return array(
+    'volume_simple' => array(
+      'label' => t('Individual Fields'),
+      'description' => t('Add publication, volume, issue, position fields separately'),
+      'field types' => array('volume'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function blr_volume_field_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $base = $element;
+  $publications = get_existing_publications();
+
+  if ($instance['widget']['type'] == 'volume_simple') {
+    $element['publication'] = array(
+        '#type' => 'select',
+        '#title' => t('Publication'),
+        '#options' => $publications,
+        '#weight' => 1,
+        '#default_value' => isset($items[$delta]['publication']) ? $items[$delta]['publication'] : 0,
+      ) + $base;
+
+    $element['volume'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Volume'),
+        '#weight' => 2,
+        '#default_value' => isset($items[$delta]['volume']) ? $items[$delta]['volume'] : NULL,
+      ) + $base;
+
+    $element['issue'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Issue'),
+        '#weight' => 3,
+        '#default_value' => isset($items[$delta]['issue']) ? $items[$delta]['issue'] : NULL,
+      ) + $base;
+
+    $element['position'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Position'),
+        '#weight' => 4,
+        '#default_value' => isset($items[$delta]['position']) ? $items[$delta]['position'] : NULL,
+      ) + $base;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function blr_volume_field_field_formatter_info() {
+  return array(
+    'volume_default' => array(
+      'label' => t('Default'),
+      'field types' => array('volume'),
+    ),
+    'volume_with_publication' => array(
+      'label' => t('With Publication'),
+      'field types' => array('volume'),
+    ),
+    'volume_with_publication_link' => array(
+      'label' => t('With Publication Linked'),
+      'field types' => array('volume'),
+    ),
+    'volume_with_download_link' => array(
+      'label' => t('With Download Link'),
+      'field types' => array('volume'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function blr_volume_field_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  switch ($display['type']) {
+    case 'volume_default':
+      foreach ($items as $delta => $item) {
+        $output = t(
+          'Volume @volume, Issue @issue', array(
+            '@volume' => $item['volume'],
+            '@issue' => $item['issue'],
+          )
+        );
+
+        $element[$delta] = array('#markup' => $output);
+      }
+      break;
+    case 'volume_with_publication':
+      foreach ($items as $delta => $item) {
+        $publication = get_publication_name($item['publication']);
+        $output = t(
+          '@publication - Volume @volume, Issue @issue', array(
+            '@publication' => $publication,
+            '@volume' => $item['volume'],
+            '@issue' => $item['issue'],
+          )
+        );
+
+        $element[$delta] = array('#markup' => $output);
+      }
+      break;
+    case 'volume_with_publication_link':
+      foreach ($items as $delta => $item) {
+        $publication = get_publication_name($item['publication']);
+        // TODO: Move "add publication" settings to it's own page, add "blr_volume_field_archive_url" setting to main settings page.
+        $output = t(
+          '!publication - Volume @volume, Issue @issue', array(
+            '!publication' => l($publication, variable_get("blr_volume_field_archive_url", "/articles/archive"), array("query" => array("publication" => $item['publication']))),
+            '@volume' => $item['volume'],
+            '@issue' => $item['issue'],
+          )
+        );
+
+        $element[$delta] = array('#markup' => $output);
+      }
+      break;
+    case 'volume_with_download_link':
+      foreach ($items as $delta => $item) {
+        $publication = get_publication_name($item['publication']);
+        $output = t(
+          '@publication - Volume @volume, Issue @issue - !download', array(
+            '@publication' => $publication,
+            '@volume' => $item['volume'],
+            '@issue' => $item['issue'],
+            '!download' => l("DOWNLOAD FULL ISSUE", "/"),
+          )
+        );
+
+        $element[$delta] = array('#markup' => $output);
+      }
+      break;
+  }
+
+  return $element;
+}
+
+function get_existing_publications() {
+  $publications = array(0 => "None");
+
+  $result = db_query("SELECT publication,id FROM {blr_issue_browser}");
+  if ($result) {
+    while ($row = $result->fetchAssoc()) {
+      $publications[$row['id']] = $row['publication'];
+    }
+  }
+
+  return $publications;
+}

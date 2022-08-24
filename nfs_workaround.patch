@@ -1,0 +1,14 @@
+diff --git a/includes/file.inc b/includes/file.inc
+index d3ac87e..bef378b 100644
+--- a/includes/file.inc
++++ b/includes/file.inc
+@@ -443,7 +443,8 @@ function file_prepare_directory(&$directory, $options = FILE_MODIFY_PERMISSIONS)
+     return FALSE;
+   }
+   // The directory exists, so check to see if it is writable.
+-  $writable = is_writable($directory);
++  //$writable = is_writable($directory);
++  $writable = 1; // Bypassed due to conflict with NFS in production
+   if (!$writable && ($options & FILE_MODIFY_PERMISSIONS)) {
+     return drupal_chmod($directory);
+   }

@@ -1,0 +1,21 @@
+.block--poll {
+  h4 {
+    margin: 0 0 15px;
+  }
+
+  .form-submit {
+    font-weight: $primaryFontWeightMed;
+    background-color: $util-grey;
+    border: none;
+    padding: 5px 15px;
+    color: #ffffff;
+  }
+}
+
+.poll-bars__bar {
+  background-color: $util-grey;
+
+  .foreground {
+    background-color: $brand2;
+  }
+}

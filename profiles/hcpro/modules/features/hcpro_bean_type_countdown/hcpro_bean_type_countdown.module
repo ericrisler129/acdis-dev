@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the hcpro_bean_type_countdown feature.
+ */
+
+include_once 'hcpro_bean_type_countdown.features.inc';

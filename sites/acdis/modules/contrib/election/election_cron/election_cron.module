@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * @file
+ * Module file for the election_cron module.
+ */
+
+/**
+ * Implements hook_cron().
+ */
+function election_cron_cron() {
+  // Track the last time this function ran. The default is REQUEST_TIME so that
+  // if election_cron_last is deleted somehow, it doesn't re-run every scheduled
+  // hook.
+  $election_cron_last = variable_get('election_cron_last', REQUEST_TIME);
+
+  // Invoke hook_election_nominations_open(),
+  // hook_election_nominations_close(), hook_election_voting_open(), and
+  // hook_election_voting_close().
+  foreach (array('nominations', 'voting') as $stage) {
+    $stage_prefix = substr($stage, 0, 1);
+    foreach (array('open', 'close') as $status) {
+      $query = db_select('election', 'e')
+        ->fields('e', ['election_id'])
+        ->condition($stage_prefix . 'status', ELECTION_STATUS_SCHEDULED)
+        ->condition($stage_prefix . $status . '_time', REQUEST_TIME, '<=')
+        ->condition($stage_prefix . $status . '_time', $election_cron_last, '>')
+        ->execute();
+      while ($result = $query->fetch()) {
+        module_invoke_all('election_' . $stage . '_' . $status, $result->election_id, TRUE);
+      }
+    }
+  }
+
+  variable_set('election_cron_last', REQUEST_TIME);
+}

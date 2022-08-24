@@ -1,0 +1,17 @@
+.view-resources {
+  .views-field-php {
+    @include lock;
+
+    .lock-icon {
+      position: static;
+    }
+  }
+
+  .view-empty {
+    p {
+      font-size: $FSextraLarge;
+      font-weight: bold;
+      text-align: center;
+    }
+  }
+}

@@ -1,0 +1,4 @@
+name = ACDIS FAQ
+description = Adds FAQs categories block, view
+package = Custom
+core = 7.x

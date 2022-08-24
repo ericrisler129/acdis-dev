@@ -1,0 +1,32 @@
+<?php
+/**
+ * @file
+ * Install functions for the blr_flood_whitelist module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function blr_flood_whitelist_schema() {
+  $schema['flood_ip_whitelist'] = array(
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'ip' => array(
+        'type' => 'varchar',
+        'length' => 31,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('id'),
+    'indexes' => array(
+      'id' => array('id'),
+    ),
+  );
+
+  return $schema;
+}

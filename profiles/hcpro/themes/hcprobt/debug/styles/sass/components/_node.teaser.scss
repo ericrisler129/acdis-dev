@@ -1,0 +1,9 @@
+.node {
+  &.node--article--teaser {
+    margin: 0 0 5px;
+  }
+
+  &.node-teaser {
+    @include lock;
+  }
+}

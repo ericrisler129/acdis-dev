@@ -1,0 +1,74 @@
+.block {
+  &.block-network-events,
+  &.block-network-webcasts {
+    margin: 0;
+
+    .title-wrapper {
+      padding: 10px;
+      background-color: $brand1;
+
+      h2 {
+        font-size: $FSlarge;
+        margin: 0;
+        color: #ffffff;
+      }
+    }
+
+    .block__content {
+      padding: 0;
+
+      .event-heading {
+        margin: 0 0 15px;
+      }
+
+      h3 {
+        @include infobox;
+        font-size: $FSbase;
+        padding: 10px;
+        margin: 0;
+
+        a {
+          font-weight: normal;
+          float: right;
+        }
+      }
+
+      .event-item {
+        padding: 5px 10px;
+        border-bottom: 1px dotted #000000;
+
+        &:last-child {
+          border: none;
+        }
+
+        .event-date {
+          font-size: $FSsmall;
+          font-weight: $primaryFontWeightMed;
+          font-style: italic;
+          margin: 0 10px 0 0;
+          color: $brand1;
+        }
+
+        a {
+          font-size: $FSsmall;
+          font-weight: $primaryFontWeightMed;
+          color: $copy;
+
+          &:hover {
+            color: lighten($copy, 15);
+          }
+        }
+      }
+    }
+
+    &:last-child {
+      margin: 0;
+    }
+
+    .no-results {
+      font-style: italic;
+      font-weight: bold;
+      text-align: center;
+    }
+  }
+}

@@ -1,0 +1,13 @@
+.block-header-menu {
+  display: inline-block;
+  vertical-align: top;
+
+  .menu {
+    .leaf {
+      a {
+        color: $copy;
+        border-right: 1px solid $copy;
+      }
+    }
+  }
+}
